@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { INTENTS, MEET_TYPES, URGENCIES, type OpenDay } from "@/lib/booking";
+import { PROFILE } from "@/lib/profile";
 
 type SubmissionResult = {
   id: string;
@@ -107,25 +108,19 @@ export default function BookingForm() {
         <div className="page-heading">
           <Link href="/card">回電子名片</Link>
           <h1>預約完成</h1>
-          <p>資料已寫入本機預約後台，課堂版不會真的寄信或通知客戶。</p>
+          <p>需求已送出。Maggie 會先看過你的狀況再與你聯繫，見面時就不用從頭問起。</p>
         </div>
         <div className="form-success">
           <strong>已保留時段：</strong>
           <br />
           {result.slotLabel}
         </div>
+        {/* 這裡是客戶看到的畫面，所以只給客戶用得到的出口，不放後台連結 */}
         <div className="choice-row">
-          <Link className="button" href="/admin/appointments">查看預約後台</Link>
-          {result.previewFile ? (
-            <a
-              className="button-secondary"
-              href={`/api/appointment/preview?file=${encodeURIComponent(result.previewFile)}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              查看確認信預覽
-            </a>
-          ) : null}
+          <a className="button line-button" href={PROFILE.social.line} target="_blank" rel="noreferrer">
+            順便加 LINE 保持聯絡
+          </a>
+          <Link className="button-secondary" href="/card">回電子名片</Link>
         </div>
       </main>
     );
@@ -279,7 +274,7 @@ export default function BookingForm() {
         <button className="button booking-submit" disabled={submitting} type="submit">
           {submitting ? "正在建立預約..." : "確認預約"}
         </button>
-        <p className="privacy-note">教學模式：資料只存在這個專案資料夾，不會傳到外部服務。</p>
+        <p className="privacy-note">你留下的資料僅用於這次諮詢聯繫，不會提供給第三方。</p>
       </form>
     </main>
   );

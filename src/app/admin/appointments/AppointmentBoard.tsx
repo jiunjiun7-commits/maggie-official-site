@@ -87,7 +87,7 @@ export default function AppointmentBoard({
       <div className="admin-heading">
         <div>
           <h1>客戶預約</h1>
-          <p>看需求、判溫度、更新處理狀態。課堂版資料只存在本機。</p>
+          <p>看需求、判溫度、更新處理狀態。⚠️ 資料存在伺服器暫存區，每次重新部署會清空，重要客戶請即時記錄到你的案件系統。</p>
         </div>
         <button className="button-secondary" disabled={Boolean(busyId)} onClick={resetDemo} type="button">
           {busyId === "reset" ? "重設中..." : "重設示範資料"}
