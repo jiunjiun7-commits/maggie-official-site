@@ -1,0 +1,65 @@
+.login-note {
+  margin: 18px 24px 0;
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 14px;
+  line-height: 1.8;
+  color: #d7e0ee;
+}
+
+.login-note b {
+  display: block;
+  margin-bottom: 6px;
+  color: #fff;
+}
+
+.login-note p {
+  margin: 6px 0 0;
+}
+
+.login-note code {
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 13px;
+  color: #efbd45;
+}
+
+.login-note--ok {
+  border-color: rgba(239, 189, 69, 0.5);
+  background: rgba(239, 189, 69, 0.1);
+}
+
+.login-note--err {
+  border-color: rgba(220, 54, 76, 0.55);
+  background: rgba(220, 54, 76, 0.12);
+}
+
+.login-uid {
+  display: block;
+  margin: 10px 0;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  word-break: break-all;
+  color: #efbd45;
+}
+
+.admin-logout {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #d7e0ee;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.admin-logout:hover {
+  border-color: #efbd45;
+  color: #efbd45;
+}

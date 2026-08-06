@@ -1,0 +1,23 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+.env
+.env.local
+.env.*.local
+
+data/appointments.json
+data/outbox/
+
+.DS_Store
+Thumbs.db
+npm-debug.log*
+
+# 課程原始教材裡的講師個人照，不隨專案公開
+public/card/abin.jpg
+
+# 原教材的 .env 範例檔：內容未經檢視，不隨公開 repo 一起發布。
+# 需要的環境變數說明改看 ENV_SETUP.md
+.env.example
