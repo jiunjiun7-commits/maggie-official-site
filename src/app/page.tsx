@@ -1,8 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
+import CountUp from "@/app/_components/CountUp";
 import SiteInteractions from "@/app/_components/SiteInteractions";
 import { BRAND, PROFILE } from "@/lib/profile";
 import "./site.css";
+
+/**
+ * 累積成交總額（單位：億元）。
+ * ⚠️ 這是對外公開的業績數字，更新前請先自己核對正確金額。
+ */
+const TOTAL_SALES_100M = 1.78;
 
 const LINE_URL = PROFILE.social.line;
 const TEL_URL = `tel:${PROFILE.phoneRaw}`;
@@ -249,7 +256,21 @@ export default function HomePage() {
               數字不是拿來炫耀的，是拿來證明「這套做法真的有效」。
             </p>
 
-            <div className="stats">
+            {/* 總銷金額：捲到畫面內才開始跑動 */}
+            <div className="bigstat">
+              <div className="bigstat__label">累積成交總額</div>
+              <div className="bigstat__num">
+                <span className="bigstat__unit">NT$</span>
+                <CountUp to={TOTAL_SALES_100M} decimals={2} />
+                <em>億</em>
+              </div>
+              <p className="bigstat__note">
+                2023 年入行至今，成交總額約新台幣 {TOTAL_SALES_100M} 億元。
+                從美術館特區到農十六，每一件都是先把風險講清楚才成交的。
+              </p>
+            </div>
+
+            <div className="stats stats--2">
               <div className="stat">
                 <div className="stat__num">TOP <em>1</em></div>
                 <div className="stat__label">112 年度全公司第一</div>
@@ -259,11 +280,6 @@ export default function HomePage() {
                 <div className="stat__num">最佳服務<em>楷模</em></div>
                 <div className="stat__label">年度最佳服務楷模</div>
                 <p>由服務品質與客戶回饋評選，代表的不只是成交，是成交之後客戶還願意介紹朋友來。</p>
-              </div>
-              <div className="stat">
-                <div className="stat__num"><em>3</em> 大區</div>
-                <div className="stat__label">鼓山 ‧ 左營 ‧ 三民</div>
-                <p>集中火力在高雄市區三個行政區，專營美術館特區與農十六重劃區高總價住宅。</p>
               </div>
             </div>
 
