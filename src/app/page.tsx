@@ -6,10 +6,11 @@ import { BRAND, PROFILE } from "@/lib/profile";
 import "./site.css";
 
 /**
- * 累積成交總額（單位：億元）。
- * ⚠️ 這是對外公開的業績數字，更新前請先自己核對正確金額。
+ * 累積成交實績。⚠️ 這是對外公開的業績數字，更新前請先自己核對。
+ * 實際金額 2.59632 億，顯示取到小數第二位。
  */
-const TOTAL_SALES_100M = 1.78;
+const TOTAL_SALES_100M = 2.6;
+const TOTAL_DEALS = 24;
 
 const LINE_URL = PROFILE.social.line;
 const TEL_URL = `tel:${PROFILE.phoneRaw}`;
@@ -256,17 +257,28 @@ export default function HomePage() {
               數字不是拿來炫耀的，是拿來證明「這套做法真的有效」。
             </p>
 
-            {/* 總銷金額：捲到畫面內才開始跑動 */}
+            {/* 成交實績：捲到畫面內才開始跑動 */}
             <div className="bigstat">
-              <div className="bigstat__label">累積成交總額</div>
-              <div className="bigstat__num">
-                <span className="bigstat__unit">NT$</span>
-                <CountUp to={TOTAL_SALES_100M} decimals={2} />
-                <em>億</em>
+              <div className="bigstat__grid">
+                <div className="bigstat__item">
+                  <div className="bigstat__label">累積成交總額</div>
+                  <div className="bigstat__num">
+                    <span className="bigstat__unit">NT$</span>
+                    <CountUp to={TOTAL_SALES_100M} decimals={2} />
+                    <em>億</em>
+                  </div>
+                </div>
+                <div className="bigstat__item">
+                  <div className="bigstat__label">累積成交件數</div>
+                  <div className="bigstat__num">
+                    <CountUp to={TOTAL_DEALS} />
+                    <em>件</em>
+                  </div>
+                </div>
               </div>
               <p className="bigstat__note">
-                2023 年入行至今，成交總額約新台幣 {TOTAL_SALES_100M} 億元。
-                從美術館特區到農十六，每一件都是先把風險講清楚才成交的。
+                2023 年入行至今，累積成交 {TOTAL_DEALS} 件、總額約新台幣 {TOTAL_SALES_100M} 億元。
+                不是靠一兩件大案衝出來的數字，是一件一件把風險講清楚換來的。
               </p>
             </div>
 
