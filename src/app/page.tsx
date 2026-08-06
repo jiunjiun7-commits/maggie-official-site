@@ -1,8 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import CountUp from "@/app/_components/CountUp";
+import ReviewMarquee from "@/app/_components/ReviewMarquee";
 import SiteInteractions from "@/app/_components/SiteInteractions";
 import { BRAND, PROFILE } from "@/lib/profile";
+import { REVIEWS } from "@/lib/reviews";
 import "./site.css";
 
 /**
@@ -304,12 +306,16 @@ export default function HomePage() {
                   height={1440}
                 />
               </figure>
-              <blockquote className="quote">
-                「Maggie 會把最壞的情況先講給你聽。一開始覺得她很敢講，成交之後才發現，
-                那些提醒每一條都用得上。」
-                <cite>— 美術館特區 換屋客戶</cite>
-              </blockquote>
+              <div className="award__body">
+                <h3>成交之後，客戶還願意找我</h3>
+                <p>
+                  獎項是公司給的，真正說明服務品質的是客戶成交之後的反應。
+                  以下是幾位客戶在 LINE 上留下的話，內容都已徵得同意並隱去個人資訊。
+                </p>
+              </div>
             </div>
+
+            {REVIEWS.length ? <ReviewMarquee reviews={REVIEWS} /> : null}
           </div>
         </section>
 

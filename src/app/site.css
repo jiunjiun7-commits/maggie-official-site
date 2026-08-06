@@ -379,6 +379,67 @@ p:last-child{ margin-bottom:0; }
   background:#3A2C32;
 }
 
+.award__body h3{
+  font-size:clamp(1.3rem,2.6vw,1.8rem); color:var(--gold-soft);
+  margin:0 0 14px; letter-spacing:.02em;
+}
+.award__body p{ color:rgba(242,240,234,.78); font-size:1rem; line-height:1.9; max-width:52ch; }
+
+/* ---------- 客戶 LINE 回饋輪播 ---------- */
+.marquee{
+  margin-top:clamp(36px,5vw,56px);
+  /* 滿版跳出 .wrap 的邊界，兩側用遮罩淡出 */
+  width:100vw; margin-inline:calc(50% - 50vw);
+  overflow:hidden; padding:8px 0 4px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);
+}
+.marquee__track{
+  display:flex; gap:20px; width:max-content; padding-inline:20px;
+  animation:marquee calc(var(--count) * 5s) linear infinite;
+}
+.marquee:hover .marquee__track,
+.marquee:focus-within .marquee__track{ animation-play-state:paused; }
+@keyframes marquee{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+
+.marquee__item{ width:240px; flex:0 0 240px; }
+.marquee__shot{
+  display:block; width:100%; padding:0; border:0; cursor:zoom-in;
+  background:none; border-radius:var(--radius-l); overflow:hidden;
+  border:1px solid rgba(200,162,74,.28);
+  transition:border-color .3s var(--ease), transform .3s var(--ease);
+}
+.marquee__shot:hover{ border-color:var(--gold); transform:translateY(-4px); }
+.marquee__shot img{
+  width:100%; height:auto; display:block;
+  background:#15151a;
+}
+.marquee__caption{
+  margin:12px 2px 0; font-size:.82rem; line-height:1.7;
+  color:rgba(242,240,234,.6);
+}
+
+/* 點圖放大 */
+.lightbox{
+  position:fixed; inset:0; z-index:200; cursor:zoom-out;
+  background:rgba(8,8,10,.92); backdrop-filter:blur(6px);
+  display:grid; place-items:center; padding:5vh 5vw;
+  animation:fadein .2s var(--ease);
+}
+.lightbox img{
+  max-width:min(90vw,520px); max-height:90vh; width:auto; height:auto;
+  border-radius:var(--radius-l); cursor:default;
+  box-shadow:0 30px 80px rgba(0,0,0,.6);
+}
+.lightbox__close{
+  position:absolute; top:18px; right:22px;
+  width:44px; height:44px; border-radius:50%;
+  background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.24);
+  color:#fff; font-size:1.6rem; line-height:1; cursor:pointer;
+}
+.lightbox__close:hover{ background:rgba(255,255,255,.2); }
+@keyframes fadein{ from{ opacity:0; } to{ opacity:1; } }
+
 .quote{
   margin:0; padding:clamp(28px,4vw,44px);
   border-left:3px solid var(--yongyi-LIPSTICK); background:rgba(255,255,255,.04);
@@ -508,6 +569,10 @@ a.contact__v:hover{ color:var(--yongyi-CERISE); text-decoration:underline; }
   *,*::before,*::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
   html{ scroll-behavior:auto; }
   .reveal{ opacity:1; transform:none; }
+
+  /* 不自動跑，改成可以自己左右滑 */
+  .marquee{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .marquee__track{ animation:none; }
 }
 
 /* ==========================================================================
