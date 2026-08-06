@@ -269,7 +269,7 @@ export default function BookingForm() {
               id="note"
               maxLength={2000}
               onChange={(event) => setNote(event.target.value)}
-              placeholder="例如：預算 1,600 萬，想找西屯兩房含車位，希望三個月內入住。"
+              placeholder="例如：預算 2,000 萬，想找美術館特區三房含雙車位，希望半年內換屋。"
               value={note}
             />
           </div>
