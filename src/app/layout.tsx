@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-// TODO: 綁定正式網域後改成你的網址
-const SITE_URL = "https://example.com";
+const SITE_URL = "https://www.maggie-realty.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -27,13 +26,13 @@ export const metadata: Metadata = {
     title: "林俞君 Maggie｜高雄房仲 鼓山‧左營‧三民｜美術館 農十六",
     description: "112 年度全高雄業績 TOP1、年度最佳服務楷模。專營美術館特區與農十六，可線上預約諮詢。",
     url: "/",
-    images: [{ url: "/card/maggie.jpg", alt: "高雄房仲林俞君 Maggie 形象照" }]
+    images: [{ url: "/card/maggie-avatar.jpg", alt: "高雄房仲林俞君 Maggie 形象照" }]
   },
   twitter: {
     card: "summary_large_image",
     title: "林俞君 Maggie｜高雄房仲 鼓山‧左營‧三民",
     description: "專營美術館特區與農十六。高級住宅、資產配置、稅務諮詢、行情分析。",
-    images: ["/card/maggie.jpg"]
+    images: ["/card/maggie-avatar.jpg"]
   },
   robots: { index: true, follow: true },
   other: {
