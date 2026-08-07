@@ -104,6 +104,41 @@ const JSON_LD = {
   }))
 };
 
+/* 「關於我」服務理念用的簡潔線性圖示，統一走金色細線風格，不用色塊圖案 */
+function CompassIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <path
+        d="M15.3 8.7 13 13l-4.3 2.3L11 11l4.3-2.3Z"
+        fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function WalletIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <rect x="3" y="6" width="18" height="13" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M3 10h18" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="17" cy="14.3" r="1.1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ShieldCheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <path
+        d="M12 3.4 19 6.2v5.3c0 4.4-3 8-7 9.3-4-1.3-7-4.9-7-9.3V6.2L12 3.4Z"
+        fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"
+      />
+      <path d="M9 12.1l2 2 4-4.1" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function HomePage() {
   return (
     <>
@@ -190,7 +225,7 @@ export default function HomePage() {
           <div className="wrap grid-2 grid-2--about">
             <div>
               <p className="eyebrow">About</p>
-              <h2>從急重症護理師，<br />到專營住宅的不動產經紀人員</h2>
+              <h2>從急重症護理師，<br />到值得信賴的不動產規劃師</h2>
               <figure className="side-photo">
                 <Image
                   src="/site/img/about.jpg"
@@ -205,29 +240,50 @@ export default function HomePage() {
                 我始終相信，<strong>房子只是空間，真正值得守護的是住在裡面的人。</strong>
               </p>
               <p>
-                在成為房仲之前，我曾擔任近八年的護理師，服務於心臟內外科、新生兒加護病房、
-                血液腫瘤與安寧緩和醫療。那段經歷讓我明白，人生每一個重要決定，
-                都需要充分的資訊、良好的溝通，以及彼此的信任——買房、賣房，也是如此。
+                曾任近 8 年護理師，服務於急重症、新生兒加護、血液腫瘤與安寧醫療。
+                這段經歷讓我相信，每一個重要決定，都需要充分的資訊、良好的溝通，以及彼此的信任。
               </p>
               <p>
-                轉職後，我先在<strong>信義房屋直營體系</strong>服務三年，建立扎實的交易流程、議價技巧與客戶服務基礎；
-                目前於永義房屋擔任經理，持續深耕高雄房地產市場。
+                轉職後，於<strong>信義房屋</strong>累積三年完整的交易與服務經驗，
+                目前擔任永義房屋經理，持續深耕高雄房地產市場。
               </p>
               <p>
-                對我來說，房仲的工作不只是帶看與成交，更重要的是協助客戶了解市場、分析風險，
-                陪伴每一位屋主與買方，在資訊充分的情況下，做出安心且值得信賴的決定。
+                對我而言，房仲不只是帶看與成交，而是陪伴每一位屋主與買方，
+                在充分了解市場與風險後，做出安心的選擇。
               </p>
-              <ul className="ticks">
-                <li>先了解真正需求，而不是急著推薦房子</li>
-                <li>協助規劃預算、貸款與稅務，而不是成交後才提醒</li>
-                <li>清楚說明交易流程與可能的風險，而不是讓客戶自己摸索</li>
+
+              <p className="prose__kicker">服務理念</p>
+              <ul className="value-list">
+                <li className="value-list__item">
+                  <span className="value-list__icon" aria-hidden="true"><CompassIcon /></span>
+                  <div>
+                    <div className="value-list__title">需求優先</div>
+                    <p>先了解真正需求，再推薦合適的房子。</p>
+                  </div>
+                </li>
+                <li className="value-list__item">
+                  <span className="value-list__icon" aria-hidden="true"><WalletIcon /></span>
+                  <div>
+                    <div className="value-list__title">完整規劃</div>
+                    <p>協助預算、貸款與稅務，降低決策壓力。</p>
+                  </div>
+                </li>
+                <li className="value-list__item">
+                  <span className="value-list__icon" aria-hidden="true"><ShieldCheckIcon /></span>
+                  <div>
+                    <div className="value-list__title">安心交易</div>
+                    <p>清楚說明交易流程與可能風險，陪伴完成每一步。</p>
+                  </div>
+                </li>
               </ul>
+
               <p>
                 你不需要懂所有房地產知識，<strong>但你有權利知道每一個重要決策。</strong>
               </p>
               <p>
-                目前主要服務高雄市<strong>鼓山區、左營區、三民區</strong>，
-                專營<strong>美術館特區、農十六</strong>及高總價住宅市場。
+                深耕<strong>農十六</strong>、<strong>美術館特區</strong>，熟悉<strong>左營高鐵</strong>、
+                <strong>文山特區</strong>、<strong>亞洲新灣</strong>等高雄核心生活圈；
+                無論您在大高雄哪個區域有買房或賣房需求，我都願意提供專業協助。
               </p>
             </div>
           </div>
