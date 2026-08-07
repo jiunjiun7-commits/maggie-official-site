@@ -394,6 +394,52 @@ p:last-child{ margin-bottom:0; }
 .stat__label{ font-size:.94rem; font-weight:700; color:#fff; margin-bottom:12px; letter-spacing:.04em; }
 .stat p{ font-size:.92rem; color:#9C9A93; line-height:1.8; }
 
+/* ---------- 專業歷程卡片（沿用 .stat 的外觀，只換內容排版） ---------- */
+.milestone{ display:flex; flex-direction:column; }
+.milestone__head{ margin-bottom:22px; }
+.milestone__eyebrow{
+  display:block; font-family:var(--font-en); font-size:.68rem;
+  letter-spacing:.3em; text-transform:uppercase; color:var(--gold-soft);
+  margin-bottom:8px;
+}
+.milestone__title{
+  display:block; font-size:clamp(1.5rem,3vw,2.1rem); font-weight:700;
+  line-height:1.15; color:var(--gold-soft);
+}
+
+/* 內容區固定最小高度，切換時卡片不會忽高忽低 */
+.milestone__body{
+  flex:1; min-height:150px;
+  opacity:0; transition:opacity .6s var(--ease);
+}
+.milestone__body.is-visible{ opacity:1; }
+
+.milestone__meta{
+  display:flex; align-items:center; flex-wrap:wrap; gap:8px;
+  font-size:.8rem; color:#9C9A93; margin-bottom:10px;
+}
+.milestone__icon{ font-size:1rem; line-height:1; }
+.milestone__date{ color:var(--gold); font-weight:700; letter-spacing:.04em; }
+.milestone__company{ position:relative; padding-left:10px; }
+.milestone__company::before{
+  content:""; position:absolute; left:0; top:50%; transform:translateY(-50%);
+  width:1px; height:11px; background:rgba(255,255,255,.24);
+}
+.milestone__award{
+  font-size:1.06rem; font-weight:700; color:#fff;
+  margin-bottom:10px; letter-spacing:.03em;
+}
+.milestone__desc{ font-size:.92rem; color:#9C9A93; line-height:1.8; margin:0; }
+
+.milestone__dots{ display:flex; gap:9px; margin-top:22px; }
+.milestone__dot{
+  width:7px; height:7px; padding:0; border-radius:50%; cursor:pointer;
+  border:1px solid rgba(200,162,74,.45); background:transparent;
+  transition:background .3s var(--ease), border-color .3s var(--ease), transform .3s var(--ease);
+}
+.milestone__dot:hover{ border-color:var(--gold); transform:scale(1.25); }
+.milestone__dot.is-active{ background:var(--gold); border-color:var(--gold); }
+
 /* 戰績：頒獎照 + 客戶好評 */
 .award{
   display:grid; grid-template-columns:minmax(0,.62fr) minmax(0,1fr);

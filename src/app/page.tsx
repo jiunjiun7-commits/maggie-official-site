@@ -2,8 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import AreaCarousel from "@/app/_components/AreaCarousel";
 import CountUp from "@/app/_components/CountUp";
+import MilestoneCard from "@/app/_components/MilestoneCard";
 import ReviewMarquee from "@/app/_components/ReviewMarquee";
 import SiteInteractions from "@/app/_components/SiteInteractions";
+import { MILESTONES } from "@/lib/milestones";
 import { BRAND, PROFILE } from "@/lib/profile";
 import { REVIEWS } from "@/lib/reviews";
 import "./site.css";
@@ -293,11 +295,7 @@ export default function HomePage() {
             </div>
 
             <div className="stats stats--2">
-              <div className="stat">
-                <div className="stat__num">TOP <em>1</em></div>
-                <div className="stat__label">112 年度全高雄 TOP 1</div>
-                <p>以年度業績表現榮獲全高雄第一，肯定在美術館與農十六的深耕成果。</p>
-              </div>
+              <MilestoneCard milestones={MILESTONES} />
               <div className="stat">
                 <div className="stat__num">最佳服務<em>楷模</em></div>
                 <div className="stat__label">年度最佳服務楷模</div>
