@@ -161,7 +161,13 @@ export async function bookedSlots() {
     .select("slot_iso")
     .eq("status", "confirmed");
   if (error) throw error;
-  return new Set((data as { slot_iso: string }[]).map((row) => row.slot_iso));
+
+  // Postgres 回傳的 timestamptz 格式（例如帶 +00:00 的時區偏移）跟 JS 的
+  // Date.toISOString()（固定用 .000Z）不完全一樣，這裡統一轉一次格式，
+  // 不然 booking.ts 用字串完全比對來判斷時段是否已被預約會永遠比對不到。
+  return new Set(
+    (data as { slot_iso: string }[]).map((row) => new Date(row.slot_iso).toISOString())
+  );
 }
 
 export async function listAppointments(status = "all") {

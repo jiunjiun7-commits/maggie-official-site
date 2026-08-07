@@ -35,3 +35,10 @@ create index if not exists appointments_created_at_idx on appointments (created_
 -- 一般（anon）金鑰完全讀不到也寫不到，多一層保護，
 -- 就算日後不小心把 anon key 用到前端程式碼裡，這張表也不會外洩。
 alter table appointments enable row level security;
+
+-- 透過 SQL Editor 直接建表時，Postgres 不會自動把權限授權給 service_role
+-- （Supabase 的表格編輯器介面才會自動處理這件事），所以要手動補這一步，
+-- 不然 service_role 金鑰雖然能連上資料庫，仍然會被擋在資料表外面。
+-- 只授權給 service_role，不給 anon／authenticated，維持前面說的那層保護。
+grant usage on schema public to service_role;
+grant select, insert, update, delete on public.appointments to service_role;
