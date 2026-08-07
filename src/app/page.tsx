@@ -262,9 +262,9 @@ export default function HomePage() {
         <section className="section section--dark" id="record">
           <div className="wrap">
             <p className="eyebrow eyebrow--light">Track Record</p>
-            <h2 className="section__title">我的戰績</h2>
+            <h2 className="section__title">信任的累積</h2>
             <p className="section__sub section__sub--light">
-              數字不是拿來炫耀的，是拿來證明「這套做法真的有效」。
+              每一筆成交，都代表一位客戶的信任。
             </p>
 
             {/* 成交實績：捲到畫面內才開始跑動 */}
