@@ -98,7 +98,7 @@ const JSON_LD = {
     jobTitle: "經理｜不動產經紀人",
     worksFor: { "@type": "Organization", name: "永義房屋" },
     telephone: "+886-958-563-377",
-    award: ["112 年度 TOP1", "年度最佳服務楷模"]
+    award: ["112 年度全高雄 TOP1", "年度最佳服務楷模"]
   },
   makesOffer: SERVICES.map((s) => ({
     "@type": "Offer",
@@ -145,14 +145,17 @@ export default function HomePage() {
           <div className="wrap hero__inner">
             <div className="hero__text">
               <p className="eyebrow">高雄市 鼓山‧左營‧三民｜專營美術館 ‧ 農十六</p>
-              <h1>房子沒有好壞，<br />只有<span className="hl">適不適合</span>你。</h1>
+              <h1>
+                用<span className="hl">專業</span>守護家的價值，<br />
+                用<span className="hl">真誠</span>陪伴每一個選擇。
+              </h1>
               <p className="lede">
-                我是<strong>林俞君 Maggie</strong>，永義房屋經理。護理出身，習慣先聽懂你的處境，
-                再談房子——把需求、預算、稅務與風險一次攤開講清楚，讓你在簽名之前就已經安心。
+                我是<strong>林俞君 Maggie</strong>，永義房屋經理。護理師出身，在信義房屋直營體系服務過三年——
+                把需求、預算、稅務與風險一次攤開講清楚，讓你在簽名之前就已經安心。
               </p>
 
               <ul className="hero__badges">
-                <li><span>112 年度</span>TOP 1</li>
+                <li><span>112 年度</span>全高雄 TOP 1</li>
                 <li><span>年度</span>最佳服務楷模</li>
                 <li><span>專營</span>美術館‧農十六</li>
               </ul>
@@ -203,6 +206,10 @@ export default function HomePage() {
               <p>
                 在成為房仲之前，我在醫院待了近五年——心臟內外科、新生兒加護、血液腫瘤與安寧緩和。
                 那幾年教會我的是：<strong>面對重大決定的人，最需要的不是話術，是把事情講清楚的人。</strong>
+              </p>
+              <p>
+                轉職後，我先在<strong>信義房屋直營體系</strong>服務三年，扎穩了買賣流程、議價與客戶服務的基本功，
+                現在於永義房屋擔任經理，持續深耕高雄市場。
               </p>
               <p>
                 買房賣房也是一樣。金額大、流程長、每一步都有看不見的風險。
@@ -287,8 +294,8 @@ export default function HomePage() {
             <div className="stats stats--2">
               <div className="stat">
                 <div className="stat__num">TOP <em>1</em></div>
-                <div className="stat__label">112 年度全公司第一</div>
-                <p>以年度業績表現獲頒 TOP 1，肯定在美術館與農十六的深耕成果。</p>
+                <div className="stat__label">112 年度全高雄 TOP 1</div>
+                <p>以年度業績表現榮獲全高雄第一，肯定在美術館與農十六的深耕成果。</p>
               </div>
               <div className="stat">
                 <div className="stat__num">最佳服務<em>楷模</em></div>

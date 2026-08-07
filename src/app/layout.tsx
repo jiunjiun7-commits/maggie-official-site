@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: "%s｜林俞君 Maggie"
   },
   description:
-    "高雄房仲林俞君 Maggie，永義房屋經理，專營美術館特區與農十六，服務鼓山區、左營區、三民區。112 年度 TOP1、年度最佳服務楷模。提供高級住宅、資產配置、稅務諮詢與市場行情分析，可線上預約一對一諮詢。LINE：maggie3377。",
+    "高雄房仲林俞君 Maggie，永義房屋經理，護理師出身，曾服務於信義房屋直營體系。專營美術館特區與農十六，服務鼓山區、左營區、三民區。112 年度全高雄業績 TOP1、年度最佳服務楷模。提供高級住宅、資產配置、稅務諮詢與市場行情分析，可線上預約一對一諮詢。LINE：maggie3377。",
   keywords: [
     "高雄房仲", "鼓山區房仲", "左營區房仲", "三民區房仲",
     "美術館特區", "農十六", "高雄豪宅", "高雄買房", "高雄賣房",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     locale: "zh_TW",
     siteName: "林俞君 Maggie｜高雄房地產顧問",
     title: "林俞君 Maggie｜高雄房仲 鼓山‧左營‧三民｜美術館 農十六",
-    description: "112 年度 TOP1、年度最佳服務楷模。專營美術館特區與農十六，可線上預約諮詢。",
+    description: "112 年度全高雄業績 TOP1、年度最佳服務楷模。專營美術館特區與農十六，可線上預約諮詢。",
     url: "/",
     images: [{ url: "/card/maggie.jpg", alt: "高雄房仲林俞君 Maggie 形象照" }]
   },
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   }
 };
 
-export const viewport = { themeColor: "#D4587A" };
+export const viewport = { themeColor: "#0B0B0C" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
