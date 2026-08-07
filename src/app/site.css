@@ -227,6 +227,13 @@ p:last-child{ margin-bottom:0; }
 .grid-2--about{ grid-template-columns:.95fr 1.05fr; align-items:center; }
 .prose p{ color:var(--ink-soft); }
 .prose strong{ color:var(--ink); border-bottom:2px solid var(--yongyi-BALLET); }
+.prose__lead{
+  font-size:1.16rem; font-weight:700; color:var(--ink) !important;
+  padding-left:20px; border-left:3px solid var(--yongyi-LIPSTICK);
+  margin-bottom:28px !important; line-height:1.75;
+}
+.prose__lead strong{ border-bottom-color:var(--yongyi-LIPSTICK); }
+.prose .ticks{ margin:22px 0; }
 
 /* 關於我的生活照 */
 .side-photo{ margin:32px 0 0; max-width:340px; position:relative; }
