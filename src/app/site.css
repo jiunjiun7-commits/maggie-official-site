@@ -501,20 +501,22 @@ p:last-child{ margin-bottom:0; }
 .marquee:focus-within .marquee__track{ animation-play-state:paused; }
 @keyframes marquee{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
 
-.marquee__item{ width:240px; flex:0 0 240px; }
+/* 卡片高度固定，寬度依每張截圖的真實比例自動撐開，避免把橫式對話截圖壓扁 */
+.marquee__item{ height:210px; flex:0 0 auto; max-width:70vw; }
 .marquee__shot{
-  display:block; width:100%; padding:0; border:0; cursor:zoom-in;
+  display:block; height:100%; padding:0; border:0; cursor:zoom-in;
   background:none; border-radius:var(--radius-l); overflow:hidden;
   border:1px solid rgba(200,162,74,.28);
   transition:border-color .3s var(--ease), transform .3s var(--ease);
 }
 .marquee__shot:hover{ border-color:var(--gold); transform:translateY(-4px); }
 .marquee__shot img{
-  width:100%; height:auto; display:block;
+  height:100%; width:auto; max-width:none; display:block;
   background:#15151a;
 }
 .marquee__caption{
   margin:12px 2px 0; font-size:.82rem; line-height:1.7;
+  max-width:280px;
   color:rgba(242,240,234,.6);
 }
 

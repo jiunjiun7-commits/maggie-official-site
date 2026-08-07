@@ -8,6 +8,11 @@ export type Review = {
   src: string;
   /** 這則回饋的簡短說明，也是圖片的替代文字（給看不到圖的人與 Google 讀） */
   caption: string;
+  /** 圖片實際的寬高（px）。截圖比例落差很大，一定要填真實值，
+   *  不然 Next Image 會用錯的比例把圖片壓扁或拉長。
+   *  可用 `node -e` 搭配 sharp 讀 metadata 量出來，見 README。 */
+  width: number;
+  height: number;
 };
 
 /**
@@ -18,6 +23,8 @@ export type Review = {
  * - 點圖可放大細看。
  * - 使用者若偏好減少動態效果，改成可手動左右捲動，不自動跑。
  * - 沒有任何截圖時整區不顯示，避免對外出現空框。
+ * - 卡片是固定高度、寬度依每張截圖的真實比例撐開（而不是統一裁切成同一個框），
+ *   因為聊天截圖長短差很多，硬套同一個框會把文字壓扁到讀不出來。
  */
 export default function ReviewMarquee({ reviews }: { reviews: Review[] }) {
   const [zoomed, setZoomed] = useState<Review | null>(null);
@@ -43,9 +50,9 @@ export default function ReviewMarquee({ reviews }: { reviews: Review[] }) {
                 <Image
                   src={review.src}
                   alt={review.caption}
-                  width={420}
-                  height={760}
-                  sizes="(max-width: 700px) 60vw, 240px"
+                  width={review.width}
+                  height={review.height}
+                  sizes="70vw"
                   // 第一輪之外的都是視覺重複，不需要讓輔助技術重複朗讀
                   aria-hidden={index >= reviews.length}
                 />
@@ -68,8 +75,8 @@ export default function ReviewMarquee({ reviews }: { reviews: Review[] }) {
           <Image
             src={zoomed.src}
             alt={zoomed.caption}
-            width={840}
-            height={1520}
+            width={zoomed.width}
+            height={zoomed.height}
             sizes="90vw"
             onClick={(event) => event.stopPropagation()}
           />
