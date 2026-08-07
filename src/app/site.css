@@ -252,7 +252,6 @@ p:last-child{ margin-bottom:0; }
 
 /* ---------- 卡片 ---------- */
 .cards{ display:grid; gap:22px; }
-.cards--3{ grid-template-columns:repeat(3,1fr); }
 .cards--2{ grid-template-columns:repeat(2,1fr); }
 
 .card{
@@ -262,12 +261,6 @@ p:last-child{ margin-bottom:0; }
 .card:hover{ transform:translateY(-5px); border-color:var(--yongyi-BALLET); box-shadow:0 18px 40px -20px rgba(43,33,38,.28); }
 .card h3{ font-size:1.3rem; margin:0 0 6px; }
 .card p{ color:var(--ink-soft); font-size:.97rem; }
-
-.card--area{ border-top:3px solid var(--yongyi-LIPSTICK); }
-.card__tag{
-  display:inline-block; font-size:.72rem; letter-spacing:.16em; font-weight:700;
-  color:var(--yongyi-MOSS); margin:0 0 12px !important;
-}
 
 .card--svc{ position:relative; padding-top:44px; }
 .card__no{
@@ -284,6 +277,38 @@ p:last-child{ margin-bottom:0; }
   width:8px; height:8px; border-radius:50%;
   background:var(--yongyi-BALLET); border:2px solid var(--yongyi-LIPSTICK);
 }
+
+.area-intro p{ margin-bottom:.7em; }
+.area-intro p:last-child{ margin-bottom:0; }
+
+/* ---------- 服務區域：橫向浮動輪播 ---------- */
+.area-carousel{
+  position:relative; display:flex; align-items:center; gap:14px;
+  margin:clamp(28px,4vw,44px) 0 clamp(40px,5vw,64px);
+}
+.area-carousel__viewport{
+  overflow:hidden; flex:1; min-width:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);
+}
+.area-carousel__track{ display:flex; gap:14px; width:max-content; list-style:none; margin:0; padding:2px; }
+.area-carousel__chip{
+  display:flex; align-items:center; gap:9px; white-space:nowrap;
+  padding:14px 26px; border-radius:999px;
+  border:1px solid var(--line); background:var(--paper);
+  font-weight:700; font-size:.98rem; color:var(--ink);
+  box-shadow:0 10px 26px -18px rgba(43,33,38,.35);
+}
+.area-carousel__pin{ display:inline-flex; color:var(--yongyi-LIPSTICK); flex:0 0 auto; }
+.area-carousel__arrow{
+  flex:0 0 auto; width:44px; height:44px; border-radius:50%;
+  border:1px solid var(--line); background:var(--paper);
+  font-size:1.5rem; line-height:1; color:var(--ink-soft); cursor:pointer; padding:0;
+  display:grid; place-items:center;
+  transition:border-color .25s var(--ease), color .25s var(--ease), transform .2s var(--ease);
+}
+.area-carousel__arrow:hover{ border-color:var(--yongyi-LIPSTICK); color:var(--yongyi-LIPSTICK); transform:translateY(-1px); }
+.area-carousel__arrow:active{ transform:translateY(0); }
 
 /* ---------- 專營重點 ---------- */
 .focus{
@@ -586,7 +611,6 @@ a.contact__v:hover{ color:var(--yongyi-CERISE); text-decoration:underline; }
    RWD
    ========================================================================== */
 @media (max-width:1024px){
-  .cards--3{ grid-template-columns:1fr 1fr; }
   .flow__list{ grid-template-columns:repeat(3,1fr); }
   .nav__links{ gap:18px; }
   .nav__links a{ font-size:.88rem; }
@@ -594,6 +618,10 @@ a.contact__v:hover{ color:var(--yongyi-CERISE); text-decoration:underline; }
 
 @media (max-width:880px){
   html{ scroll-padding-top:70px; }
+
+  .area-carousel{ gap:8px; }
+  .area-carousel__chip{ padding:12px 18px; font-size:.9rem; }
+  .area-carousel__arrow{ width:38px; height:38px; font-size:1.3rem; }
 
   .nav__inner{ height:64px; gap:14px; flex-wrap:wrap; }
   .nav__cta{ display:none; }
@@ -618,7 +646,7 @@ a.contact__v:hover{ color:var(--yongyi-CERISE); text-decoration:underline; }
   .side-photo{ max-width:260px; margin-top:24px; }
   .award{ grid-template-columns:1fr; }
   .award__photo{ max-width:340px; margin-inline:auto; }
-  .cards--3,.cards--2{ grid-template-columns:1fr; }
+  .cards--2{ grid-template-columns:1fr; }
   .stats,.stats--2{ grid-template-columns:1fr; }
   .bigstat__grid{ grid-template-columns:1fr; gap:28px; }
   .bigstat__grid::before{

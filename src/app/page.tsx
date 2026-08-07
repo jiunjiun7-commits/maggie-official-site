@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import AreaCarousel from "@/app/_components/AreaCarousel";
 import CountUp from "@/app/_components/CountUp";
 import ReviewMarquee from "@/app/_components/ReviewMarquee";
 import SiteInteractions from "@/app/_components/SiteInteractions";
@@ -17,20 +18,7 @@ const TOTAL_DEALS = 24;
 const LINE_URL = PROFILE.social.line;
 const TEL_URL = `tel:${PROFILE.phoneRaw}`;
 
-const AREAS = [
-  {
-    name: "鼓山區",
-    text: "美術館特區、內惟、龍華、鼓山高中一帶。高綠覆、學區完整，是高雄自住兼保值的長青選擇。"
-  },
-  {
-    name: "左營區",
-    text: "農十六、巨蛋、新光路廊、高鐵左營站生活圈。交通與商圈成熟，換屋與置產族群的主戰場。"
-  },
-  {
-    name: "三民區",
-    text: "民族路、九如路、澄清湖周邊。生活機能密度高、總價帶完整，首購與收租都找得到題材。"
-  }
-];
+const AREAS = ["農十六", "美術館特區", "瑞豐巨蛋", "中都重劃區", "左營高鐵", "文山特區", "亞洲新灣"];
 
 const SERVICES = [
   {
@@ -240,20 +228,13 @@ export default function HomePage() {
           <div className="wrap">
             <p className="eyebrow">Service Area</p>
             <h2 className="section__title">我服務的區塊</h2>
-            <p className="section__sub">
-              深耕高雄市區三個行政區。不是「哪裡有案就接哪裡」，而是把幾個區域走到熟——
-              熟到我可以直接告訴你這條路的車聲、這個學區的實際狀況、這棟社區的管理費合不合理。
-            </p>
-
-            <div className="cards cards--3">
-              {AREAS.map((area) => (
-                <article className="card card--area" key={area.name}>
-                  <h3>{area.name}</h3>
-                  <p className="card__tag">核心服務區</p>
-                  <p>{area.text}</p>
-                </article>
-              ))}
+            <div className="section__sub area-intro">
+              <p>漂亮的房子、成熟的生活圈，每個人都會喜歡。</p>
+              <p>但我相信，真正重要的不是哪一個區域，而是哪一個地方最適合您的生活。</p>
+              <p>因此，除了深耕的核心商圈，只要您有需求，我都願意陪您走遍大高雄，一起找到最適合的家。</p>
             </div>
+
+            <AreaCarousel areas={AREAS} />
 
             <div className="focus">
               <div className="focus__label">專營重點</div>
