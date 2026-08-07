@@ -15,7 +15,6 @@ function escapeHtml(value: string) {
 }
 
 export async function createEmailPreview(appointment: Appointment) {
-  await fs.mkdir(OUTBOX_DIR, { recursive: true });
   const fileName = `appointment-${appointment.id}.html`;
   const target = path.join(OUTBOX_DIR, fileName);
   const html = `<!doctype html>
@@ -40,6 +39,13 @@ export async function createEmailPreview(appointment: Appointment) {
   </div>
 </body>
 </html>`;
-  await fs.writeFile(target, html, "utf8");
-  return fileName;
+  try {
+    // 這個功能是本機開發用的預覽，正式環境（Vercel）的檔案系統是唯讀的，
+    // 寫不進去是預期中的事，安靜跳過就好，不用讓呼叫端每筆預約都看到一次錯誤 log。
+    await fs.mkdir(OUTBOX_DIR, { recursive: true });
+    await fs.writeFile(target, html, "utf8");
+    return fileName;
+  } catch {
+    return null;
+  }
 }

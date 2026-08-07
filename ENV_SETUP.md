@@ -1,9 +1,13 @@
-# 環境變數設定（後台 LINE 登入）
+# 環境變數設定
 
-本機開發（`npm run dev`）**不需要**設定，後台會直接開，方便你測試。
-正式部署到 Vercel **一定要**設定，否則後台會整個擋住 —— 這是刻意的，避免客戶個資裸奔。
+這份文件分兩部分：**後台 LINE 登入**、**預約資料庫（Supabase）**。兩組互不影響，
+但預約資料庫沒設定的話，正式環境的預約會全部走 LINE 備援（見下方說明），無法累積在後台。
 
-## 需要的四個變數
+本機開發（`npm run dev`）**兩組都不需要**設定，會自動退回本機檔案模式，方便你測試。
+正式部署到 Vercel 兩組都**建議設定**：LINE 登入沒設定後台會直接擋住；
+Supabase 沒設定，預約表單一律改由 LINE 送出（不會出錯，但後台看不到）。
+
+## 後台 LINE 登入：需要的四個變數
 
 | 變數 | 說明 |
 |---|---|
@@ -49,7 +53,36 @@ Vercel 專案 → **Settings** → **Environment Variables**，逐一新增上�
 
 完成後再登入一次就進得去了。之後只有這個 LINE 帳號能看到客戶資料。
 
-## 安全設計說明
+## 預約資料庫（Supabase）：需要的兩個變數
+
+| 變數 | 說明 |
+|---|---|
+| `SUPABASE_URL` | 專案的 API URL，例如 `https://xxxx.supabase.co`，不是機密 |
+| `SUPABASE_SERVICE_ROLE_KEY` | 伺服器專用的完整權限金鑰（新版介面叫 Secret key），**絕對不能外流** |
+
+### 設定步驟
+
+1. 到 [supabase.com](https://supabase.com) 建立專案（免費方案即可），Region 選 **Northeast Asia (Tokyo)**
+2. 進專案的 **SQL Editor**，貼上 [`supabase/schema.sql`](supabase/schema.sql) 整份內容並執行，建立 `appointments` 資料表
+3. 到 **Settings → API Keys**，複製 **Project URL** 與 **Secret key**（`sb_secret_...` 開頭）
+4. 在 Vercel 專案 → **Settings → Environment Variables → Production** 新增上面兩個變數
+5. 重新部署（Redeploy）
+
+沒設定這兩個變數時，`src/lib/appointment-store.ts` 會自動退回本機檔案模式——
+本機開發沒問題，但正式環境（Vercel）的檔案系統是唯讀的，寫入一定會失敗。
+`BookingForm.tsx` 已經處理這個狀況：伺服器寫入失敗時會自動改由 LINE 送出預約，
+客戶不會看到錯誤畫面，但這筆預約不會出現在後台，需要你自己從 LINE 收單。
+
+### 安全設計說明
+
+- `SUPABASE_SERVICE_ROLE_KEY` 只在伺服器端使用（API route），程式碼裡用一般環境變數名稱
+  （不是 `NEXT_PUBLIC_` 開頭），確保不會被打包進瀏覽器端的程式碼
+- `appointments` 資料表開啟了 Row Level Security 但沒有建立任何 policy，
+  代表就算金鑰不小心外流到前端，一般權限也讀不到、寫不到這張表
+- 同一時段的撞號防護是資料庫層級的唯一索引，不是應用程式自己維護的鎖——
+  Vercel 上會有多台伺服器同時運作，防護一定要落在資料庫才真的有效
+
+## 後台登入安全設計說明
 
 - 沒設定環境變數 → 正式環境的後台**完全擋住**（fail closed），不會不小心裸奔
 - 白名單是空的 → 任何人都進不去，只會顯示自己的 userId
