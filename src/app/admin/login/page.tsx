@@ -9,7 +9,7 @@ export const metadata = { title: "後台登入", robots: { index: false, follow:
 const MESSAGES: Record<string, string> = {
   unconfigured: "還沒設定 LINE Login。請先在 LINE Developers 建立 Login channel，並填好環境變數。",
   no_code: "沒有收到 LINE 回傳的授權碼，請重新登入一次。",
-  bad_state: "驗證狀態不符（可能是等太久或換了瀏覽器），請重新登入。",
+  bad_state: "登入驗證沒有對上，這在用 LINE App 內建瀏覽器開啟時偶爾會發生，屬於正常現象。請直接再按一次「用 LINE 登入」即可。",
   token_failed: "向 LINE 換取權杖失敗。請確認 Channel ID 與 Channel Secret 是否正確。",
   profile_failed: "無法取得 LINE 個人資料，請重新登入。",
   not_allowed: "這個 LINE 帳號不在允許名單內，無法進入後台。"
