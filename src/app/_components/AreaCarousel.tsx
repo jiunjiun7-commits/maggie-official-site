@@ -17,6 +17,8 @@ function PinIcon() {
   );
 }
 
+export type Area = { name: string; tag: string };
+
 /**
  * 服務區域的橫向浮動輪播：預設緩慢自動捲動，滑鼠移上／鍵盤聚焦時暫停，
  * 也可以用左右箭頭手動翻頁。
@@ -24,7 +26,7 @@ function PinIcon() {
  * 用 rAF 直接控制 transform，而不是 CSS animation，
  * 是為了讓箭頭點擊可以和自動捲動共用同一個位置狀態，不會互相打架。
  */
-export default function AreaCarousel({ areas }: { areas: string[] }) {
+export default function AreaCarousel({ areas }: { areas: Area[] }) {
   const trackRef = useRef<HTMLUListElement>(null);
   const offset = useRef(0);
   const paused = useRef(false);
@@ -102,10 +104,17 @@ export default function AreaCarousel({ areas }: { areas: string[] }) {
 
       <div className="area-carousel__viewport">
         <ul className="area-carousel__track" ref={trackRef}>
-          {loop.map((name, index) => (
-            <li className="area-carousel__chip" key={`${name}-${index}`} aria-hidden={index >= areas.length}>
+          {loop.map((area, index) => (
+            <li
+              className="area-carousel__chip"
+              key={`${area.name}-${index}`}
+              aria-hidden={index >= areas.length}
+            >
               <span className="area-carousel__pin"><PinIcon /></span>
-              <span>{name}</span>
+              <span className="area-carousel__text">
+                <span className="area-carousel__name">{area.name}</span>
+                <span className="area-carousel__desc">{area.tag}</span>
+              </span>
             </li>
           ))}
         </ul>

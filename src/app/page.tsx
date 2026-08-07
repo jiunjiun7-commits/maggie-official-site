@@ -18,7 +18,15 @@ const TOTAL_DEALS = 24;
 const LINE_URL = PROFILE.social.line;
 const TEL_URL = `tel:${PROFILE.phoneRaw}`;
 
-const AREAS = ["農十六", "美術館特區", "瑞豐巨蛋", "中都重劃區", "左營高鐵", "文山特區", "亞洲新灣"];
+const AREAS = [
+  { name: "農十六", tag: "高雄指標重劃區" },
+  { name: "美術館特區", tag: "藝文綠意宅區" },
+  { name: "瑞豐巨蛋", tag: "巨蛋捷運生活圈" },
+  { name: "中都重劃區", tag: "愛河畔新興宅區" },
+  { name: "左營高鐵", tag: "雙鐵共構樞紐" },
+  { name: "文山特區", tag: "捷運學區純住宅" },
+  { name: "亞洲新灣", tag: "高雄門戶新地標" }
+];
 
 const SERVICES = [
   {
