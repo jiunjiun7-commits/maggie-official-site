@@ -248,9 +248,11 @@ a {
 
 .card-cover {
   height: 112px;
+  /* 金色光暈以下方置中的頭像為圓心往外暈開，維持左右對稱，
+     避免像先前的對角線切割那樣把視覺重心拉向一邊，讓置中的頭像看起來偏移。 */
   background:
-    linear-gradient(120deg, var(--gold-500), rgba(200, 162, 74, 0.55) 38%, transparent 39%),
-    linear-gradient(120deg, var(--navy-900), var(--navy-950));
+    radial-gradient(120% 160% at 50% 130%, rgba(200, 162, 74, 0.5) 0%, rgba(200, 162, 74, 0) 62%),
+    linear-gradient(180deg, var(--navy-900), var(--navy-950));
   padding: 18px 20px;
   color: #fff;
   font-weight: 800;
