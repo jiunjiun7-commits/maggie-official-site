@@ -9,6 +9,8 @@ type SubmissionResult = {
   id: string;
   slotLabel: string;
   previewFile: string | null;
+  /** system = 已寫入預約系統；line = 系統暫時無法寫入，改由 LINE 送出 */
+  via: "system" | "line";
 };
 
 export default function BookingForm() {
@@ -59,6 +61,45 @@ export default function BookingForm() {
     );
   }
 
+  /** 把表單內容整理成可直接貼進 LINE 的訊息 */
+  function buildLineMessage(slotLabel: string) {
+    const lines = [
+      "Maggie 你好，我想預約諮詢：",
+      "",
+      `・希望時段：${slotLabel}`,
+      `・見面方式：${MEET_TYPES.find((item) => item.key === meetType)?.label ?? meetType}`,
+      `・諮詢需求：${intent
+        .map((key) => INTENTS.find((item) => item.key === key)?.label ?? key)
+        .join("、")}`,
+      `・預計處理：${URGENCIES.find((item) => item.key === urgency)?.label ?? urgency}`,
+      `・姓名：${name.trim()}`,
+      `・電話：${phone.trim()}`,
+      `・Email：${email.trim()}`,
+      "",
+      `補充：${note.trim()}`,
+      "",
+      "（來自官網線上預約）"
+    ];
+    return lines.join("\n");
+  }
+
+  async function copyToClipboard(text: string) {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    // 舊瀏覽器或非安全環境的退路
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand("copy");
+    document.body.removeChild(area);
+  }
+
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -69,6 +110,11 @@ export default function BookingForm() {
     if (!intent.length) return setError("請至少選擇一個需求。");
     if (!urgency) return setError("請選擇預計處理時間。");
     if (!note.trim()) return setError("請簡單描述需求。");
+
+    const slotLabel =
+      activeDay?.slots.find((slot) => slot.iso === slotIso)?.label
+        ? `${activeDay?.label} ${activeDay?.slots.find((slot) => slot.iso === slotIso)?.label}`
+        : slotIso;
 
     setSubmitting(true);
     try {
@@ -86,39 +132,68 @@ export default function BookingForm() {
           note
         })
       });
-      const payload = await response.json();
-      if (!response.ok) {
-        if (response.status === 409) {
-          setSlotIso("");
-          await loadSlots();
-        }
-        throw new Error(payload.error || "預約未完成，請稍後重試。");
+
+      // 時段剛被別人訂走：這是真的要請客戶改選，不能用 LINE 蓋過去
+      if (response.status === 409) {
+        const payload = await response.json();
+        setSlotIso("");
+        await loadSlots();
+        throw new Error(payload.error || "這個時段剛剛被預約，請重新選擇。");
       }
-      setResult(payload);
+
+      if (response.ok) {
+        const payload = await response.json();
+        setResult({ ...payload, via: "system" });
+        return;
+      }
+
+      // 其他錯誤（例如伺服器暫時無法寫入）不讓客戶白跑一趟，改由 LINE 送出
+      throw new Error("FALLBACK_TO_LINE");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "預約未完成，請稍後重試。");
+      const isConflict =
+        caught instanceof Error && caught.message !== "FALLBACK_TO_LINE" && caught.message !== "Failed to fetch";
+      if (isConflict) {
+        setError(caught.message);
+        setSubmitting(false);
+        return;
+      }
+
+      // 走 LINE：先把整理好的訊息複製起來，再開啟 LINE 讓客戶貼上
+      const message = buildLineMessage(slotLabel);
+      try {
+        await copyToClipboard(message);
+      } catch {
+        // 複製失敗不影響流程，客戶仍可在完成頁自行複製
+      }
+      window.open(PROFILE.social.line, "_blank", "noopener");
+      setResult({ id: "", slotLabel, previewFile: null, via: "line" });
     } finally {
       setSubmitting(false);
     }
   }
 
   if (result) {
+    const viaLine = result.via === "line";
     return (
       <main className="booking-shell">
         <div className="page-heading">
           <Link href="/card">回電子名片</Link>
-          <h1>預約完成</h1>
-          <p>需求已送出。Maggie 會先看過你的狀況再與你聯繫，見面時就不用從頭問起。</p>
+          <h1>{viaLine ? "只差最後一步" : "預約完成"}</h1>
+          <p>
+            {viaLine
+              ? "你的需求已整理好並複製起來，LINE 也已經開啟——直接貼上送出，Maggie 就會收到。"
+              : "需求已送出。Maggie 會先看過你的狀況再與你聯繫，見面時就不用從頭問起。"}
+          </p>
         </div>
         <div className="form-success">
-          <strong>已保留時段：</strong>
+          <strong>{viaLine ? "你選擇的時段：" : "已保留時段："}</strong>
           <br />
           {result.slotLabel}
         </div>
         {/* 這裡是客戶看到的畫面，所以只給客戶用得到的出口，不放後台連結 */}
         <div className="choice-row">
           <a className="button line-button" href={PROFILE.social.line} target="_blank" rel="noreferrer">
-            順便加 LINE 保持聯絡
+            {viaLine ? "重新開啟 LINE" : "順便加 LINE 保持聯絡"}
           </a>
           <Link className="button-secondary" href="/card">回電子名片</Link>
         </div>
