@@ -781,64 +781,67 @@ a.contact__v:hover{ color:var(--yongyi-CERISE); text-decoration:underline; }
 }
 
 /* ---------- 社群 QR Code 浮動側邊工具 ---------- */
-/* 手機已經有底部的 LINE / 撥打快捷列（.fab），且掃碼在手機上沒有意義，
-   所以這個側邊工具只在平板以上（可另開手機掃碼）的螢幕顯示。 */
+/* 手機螢幕較窄，圖示與面板都縮小尺寸，平板以上（min-width:769px）用原本的大尺寸。 */
 .qrdock{
-  display:none;
+  display:flex; flex-direction:column; gap:8px;
+  position:fixed; right:10px; top:50%; transform:translateY(-50%);
+  z-index:95;
+}
+.qrdock__item{ position:relative; }
+.qrdock__toggle{
+  width:44px; height:44px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--dark); color:var(--gold-soft);
+  border:1px solid var(--gold-deep);
+  box-shadow:0 6px 16px rgba(11,11,12,.28);
+  cursor:pointer; transition:transform .18s ease, background .18s ease, color .18s ease;
+}
+.qrdock__toggle svg{ width:18px; height:18px; }
+.qrdock__toggle:hover,
+.qrdock__toggle[aria-expanded="true"]{
+  background:var(--gold); color:#141416; transform:scale(1.06);
+}
+/* LINE 官方品牌綠，固定顏色不跟著 hover 變金色 */
+.qrdock__toggle--line{ background:#06C755; border-color:#06C755; }
+.qrdock__toggle--line:hover,
+.qrdock__toggle--line[aria-expanded="true"]{
+  background:#05a648; border-color:#05a648; color:#fff; transform:scale(1.06);
+}
+.qrdock__linemark{
+  color:#fff; font-weight:800; font-size:.62rem; letter-spacing:.02em;
+  font-family:var(--font, inherit);
+}
+.qrdock__panel{
+  position:absolute; right:52px; top:50%; transform:translateY(-50%);
+  width:150px; padding:14px 14px 12px;
+  background:#fff; border:1px solid var(--gold-pale);
+  border-radius:14px; box-shadow:0 16px 36px rgba(11,11,12,.22);
+  text-align:center;
+  animation:qrdockIn .16s ease;
+}
+.qrdock__panel::after{
+  content:""; position:absolute; right:-6px; top:50%; translate:0 -50%;
+  width:12px; height:12px; background:#fff;
+  border-right:1px solid var(--gold-pale); border-bottom:1px solid var(--gold-pale);
+  transform:translateY(-50%) rotate(-45deg);
+}
+.qrdock__qr{ line-height:0; }
+.qrdock__qr svg{ width:100%; height:auto; display:block; }
+.qrdock__label{
+  margin:8px 0 6px; font-size:.78rem; font-weight:700; color:var(--ink);
+}
+.qrdock__link{
+  font-size:.72rem; color:var(--gold-deep); text-decoration:underline;
 }
 
 @media (min-width:769px){
-  .qrdock{
-    display:flex; flex-direction:column; gap:10px;
-    position:fixed; right:20px; top:50%; transform:translateY(-50%);
-    z-index:95;
-  }
-  .qrdock__item{ position:relative; }
-  .qrdock__toggle{
-    width:52px; height:52px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    background:var(--dark); color:var(--gold-soft);
-    border:1px solid var(--gold-deep);
-    box-shadow:0 8px 20px rgba(11,11,12,.28);
-    cursor:pointer; transition:transform .18s ease, background .18s ease, color .18s ease;
-  }
+  .qrdock{ right:20px; gap:10px; }
+  .qrdock__toggle{ width:52px; height:52px; }
   .qrdock__toggle svg{ width:22px; height:22px; }
-  .qrdock__toggle:hover,
-  .qrdock__toggle[aria-expanded="true"]{
-    background:var(--gold); color:#141416; transform:scale(1.06);
-  }
-  /* LINE 官方品牌綠，固定顏色不跟著 hover 變金色 */
-  .qrdock__toggle--line{ background:#06C755; border-color:#06C755; }
-  .qrdock__toggle--line:hover,
-  .qrdock__toggle--line[aria-expanded="true"]{
-    background:#05a648; border-color:#05a648; color:#fff; transform:scale(1.06);
-  }
-  .qrdock__linemark{
-    color:#fff; font-weight:800; font-size:.72rem; letter-spacing:.03em;
-    font-family:var(--font, inherit);
-  }
-  .qrdock__panel{
-    position:absolute; right:64px; top:50%; transform:translateY(-50%);
-    width:172px; padding:16px 16px 14px;
-    background:#fff; border:1px solid var(--gold-pale);
-    border-radius:14px; box-shadow:0 16px 36px rgba(11,11,12,.22);
-    text-align:center;
-    animation:qrdockIn .16s ease;
-  }
-  .qrdock__panel::after{
-    content:""; position:absolute; right:-6px; top:50%; translate:0 -50%;
-    width:12px; height:12px; background:#fff;
-    border-right:1px solid var(--gold-pale); border-bottom:1px solid var(--gold-pale);
-    transform:translateY(-50%) rotate(-45deg);
-  }
-  .qrdock__qr{ line-height:0; }
-  .qrdock__qr svg{ width:100%; height:auto; display:block; }
-  .qrdock__label{
-    margin:8px 0 6px; font-size:.85rem; font-weight:700; color:var(--ink);
-  }
-  .qrdock__link{
-    font-size:.76rem; color:var(--gold-deep); text-decoration:underline;
-  }
+  .qrdock__linemark{ font-size:.72rem; letter-spacing:.03em; }
+  .qrdock__panel{ right:64px; width:172px; padding:16px 16px 14px; }
+  .qrdock__label{ font-size:.85rem; }
+  .qrdock__link{ font-size:.76rem; }
 }
 
 @keyframes qrdockIn{
