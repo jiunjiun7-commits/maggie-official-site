@@ -174,7 +174,7 @@ export default async function HomePage() {
             <a href="#service">服務項目</a>
             <a href="#booking">預約諮詢</a>
           </nav>
-          <Link className="btn btn--line nav__cta" href="/card/booking">線上預約</Link>
+          <Link className="btn btn--line nav__cta" data-track="book_nav" href="/card/booking">線上預約</Link>
           <button className="nav__burger" id="burger" aria-label="開啟選單" aria-expanded="false" aria-controls="nav">
             <span /><span /><span />
           </button>
@@ -204,8 +204,8 @@ export default async function HomePage() {
               </ul>
 
               <div className="hero__cta">
-                <Link className="btn btn--line" href="/card/booking">線上預約諮詢</Link>
-                <a className="btn btn--ghost" href={TEL_URL}>撥打 {PROFILE.phone}</a>
+                <Link className="btn btn--line" data-track="book_hero" href="/card/booking">線上預約諮詢</Link>
+                <a className="btn btn--ghost" data-track="tel_click" href={TEL_URL}>撥打 {PROFILE.phone}</a>
               </div>
             </div>
 
@@ -441,13 +441,13 @@ export default async function HomePage() {
               <ul className="contact">
                 <li>
                   <span className="contact__k">LINE</span>
-                  <a className="contact__v" href={LINE_URL} target="_blank" rel="noreferrer">
+                  <a className="contact__v" data-track="line_click" href={LINE_URL} target="_blank" rel="noreferrer">
                     加入LINE官方好友
                   </a>
                 </li>
                 <li>
                   <span className="contact__k">手機</span>
-                  <a className="contact__v" href={TEL_URL}>{PROFILE.phone}</a>
+                  <a className="contact__v" data-track="tel_click" href={TEL_URL}>{PROFILE.phone}</a>
                 </li>
                 <li>
                   <span className="contact__k">服務區域</span>
@@ -456,10 +456,10 @@ export default async function HomePage() {
               </ul>
 
               <div className="book__quick">
-                <a className="btn btn--ghost btn--lg" href={LINE_URL} target="_blank" rel="noreferrer">
+                <a className="btn btn--ghost btn--lg" data-track="line_click" href={LINE_URL} target="_blank" rel="noreferrer">
                   先用 LINE 問問看
                 </a>
-                <a className="btn btn--ghost btn--lg" href={TEL_URL}>直接撥電話</a>
+                <a className="btn btn--ghost btn--lg" data-track="tel_click" href={TEL_URL}>直接撥電話</a>
               </div>
             </div>
 
@@ -473,7 +473,7 @@ export default async function HomePage() {
               <p className="book__note">
                 同一個時段只會有一位客戶，送出後系統會立刻確認時段並鎖定。
               </p>
-              <Link className="btn btn--line btn--lg btn--block" href="/card/booking">
+              <Link className="btn btn--line btn--lg btn--block" data-track="book_panel" href="/card/booking">
                 開始預約
               </Link>
               <Link className="book__cardlink" href="/card">或先看我的電子名片 →</Link>
@@ -498,12 +498,12 @@ export default async function HomePage() {
             <a href="#area">服務區域</a>
             <a href="#record">戰績</a>
             <a href="#service">服務項目</a>
-            <Link href="/card/booking">線上預約</Link>
+            <Link data-track="book_footer" href="/card/booking">線上預約</Link>
             <Link href="/card">電子名片</Link>
           </nav>
           <div className="foot__contact">
-            <a href={TEL_URL}>{PROFILE.phone}</a>
-            <a href={LINE_URL} target="_blank" rel="noreferrer">加入LINE官方好友</a>
+            <a data-track="tel_click" href={TEL_URL}>{PROFILE.phone}</a>
+            <a data-track="line_click" href={LINE_URL} target="_blank" rel="noreferrer">加入LINE官方好友</a>
           </div>
         </div>
         <div className="wrap foot__legal">
@@ -524,8 +524,8 @@ export default async function HomePage() {
 
       {/* 手機浮動 CTA */}
       <div className="fab" aria-label="快速聯絡">
-        <Link className="fab__btn fab__btn--line" href="/card/booking">線上預約</Link>
-        <a className="fab__btn fab__btn--tel" href={TEL_URL}>撥電話</a>
+        <Link className="fab__btn fab__btn--line" data-track="book_fab" href="/card/booking">線上預約</Link>
+        <a className="fab__btn fab__btn--tel" data-track="tel_click" href={TEL_URL}>撥電話</a>
       </div>
     </>
   );

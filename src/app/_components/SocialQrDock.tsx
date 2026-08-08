@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { SocialQr } from "@/lib/social-qr";
+import { trackClick } from "@/lib/track-client";
 
 export default function SocialQrDock({ items }: { items: SocialQr[] }) {
   const [openKey, setOpenKey] = useState<string | null>(null);
@@ -51,7 +52,13 @@ export default function SocialQrDock({ items }: { items: SocialQr[] }) {
             <div className="qrdock__panel" role="dialog" aria-label={`${item.label} QR Code`}>
               <div className="qrdock__qr" dangerouslySetInnerHTML={{ __html: item.svg }} />
               <p className="qrdock__label">{item.label}</p>
-              <a className="qrdock__link" href={item.url} target="_blank" rel="noopener noreferrer">
+              <a
+                className="qrdock__link"
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackClick(`${item.key}_click`)}
+              >
                 開啟連結
               </a>
             </div>

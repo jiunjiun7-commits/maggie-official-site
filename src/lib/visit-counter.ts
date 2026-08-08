@@ -1,18 +1,48 @@
 import { getSupabaseClient } from "@/lib/supabase";
 
 export type VisitStats = { total: number; today: number };
+export type StatsRange = "today" | "7d" | "30d";
 
-/** 台灣沒有日光節約時間，固定 UTC+8，直接用毫秒位移換算「今天」的起訖時間即可。 */
-function todayRangeTaipei() {
+/**
+ * 把「今天／過去 7 天／過去 30 天」換算成台北時區（固定 UTC+8，沒有日光節約時間）
+ * 的日期起訖 ISO 字串。「過去 N 天」包含今天在內，所以 7 天回推 6 天、30 天回推 29 天。
+ */
+export function statsRangeTaipei(range: StatsRange) {
+  const daysBack = range === "today" ? 0 : range === "7d" ? 6 : 29;
   const TAIPEI_OFFSET_MS = 8 * 60 * 60 * 1000;
   const taipeiNow = new Date(Date.now() + TAIPEI_OFFSET_MS);
-  const startUtcMs =
+  const todayStartUtcMs =
     Date.UTC(taipeiNow.getUTCFullYear(), taipeiNow.getUTCMonth(), taipeiNow.getUTCDate()) -
     TAIPEI_OFFSET_MS;
+  const startUtcMs = todayStartUtcMs - daysBack * 24 * 60 * 60 * 1000;
   return {
     start: new Date(startUtcMs).toISOString(),
-    end: new Date(startUtcMs + 24 * 60 * 60 * 1000).toISOString()
+    end: new Date(todayStartUtcMs + 24 * 60 * 60 * 1000).toISOString()
   };
+}
+
+function todayRangeTaipei() {
+  return statsRangeTaipei("today");
+}
+
+/**
+ * 給 /admin/stats 用的日期區間訪客數，跟頁尾的 recordVisitAndGetStats() 分開，
+ * 這個只讀不寫，不會多記一筆造訪。
+ */
+export async function visitCountInRange(range: { start: string; end: string }): Promise<number | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  try {
+    const { count, error } = await supabase
+      .from("page_views")
+      .select("*", { count: "exact", head: true })
+      .gte("viewed_at", range.start)
+      .lt("viewed_at", range.end);
+    if (error) throw error;
+    return count ?? 0;
+  } catch {
+    return null;
+  }
 }
 
 /**

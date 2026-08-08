@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { trackClick, type TrackEventType } from "@/lib/track-client";
 
 /**
  * 官網首頁的互動行為：導覽列狀態、漢堡選單、捲動高亮、進場動畫。
@@ -83,6 +84,14 @@ export default function SiteInteractions() {
       });
       cleanups.push(() => io.disconnect());
     }
+
+    /* 按鈕點擊追蹤：用委派監聽，元素上只要標 data-track 就會被記錄 */
+    const onTrackedClick = (event: MouseEvent) => {
+      const el = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-track]");
+      if (el) trackClick(el.dataset.track as TrackEventType);
+    };
+    document.addEventListener("click", onTrackedClick);
+    cleanups.push(() => document.removeEventListener("click", onTrackedClick));
 
     return () => cleanups.forEach((fn) => fn());
   }, []);

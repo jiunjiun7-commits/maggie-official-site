@@ -59,3 +59,24 @@ create index if not exists page_views_viewed_at_idx on page_views (viewed_at des
 alter table page_views enable row level security;
 
 grant select, insert on public.page_views to service_role;
+
+-- ==========================================================================
+-- 按鈕點擊事件（後台 /admin/stats 的「各按鈕點擊次數」）
+-- 一張泛用表，用 event_type 分類是哪個按鈕，時間範圍靠 created_at 篩選。
+-- 跟 page_views 一樣，這只是行銷輔助數字，不是關鍵功能，沒有做去重複。
+-- ==========================================================================
+create table if not exists events (
+  id bigint generated always as identity primary key,
+  event_type text not null check (event_type in (
+    'book_nav', 'book_hero', 'book_panel', 'book_footer', 'book_fab',
+    'line_click', 'tel_click', 'instagram_click', 'facebook_click'
+  )),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists events_created_at_idx on events (created_at desc);
+create index if not exists events_type_created_idx on events (event_type, created_at desc);
+
+alter table events enable row level security;
+
+grant select, insert on public.events to service_role;
