@@ -13,7 +13,7 @@ export const PROFILE = {
   // 由 scripts/crop-avatar.js 從全身照裁出的頭肩照
   photoUrl: "/card/maggie-avatar.jpg",
   social: {
-    line: "https://line.me/ti/p/~maggie3377",
+    line: "https://lin.ee/SIpqpSU",
     instagram: "https://www.instagram.com/mgg_3377",
     // 沒有的就留空字串，按鈕會自動隱藏
     facebook: "https://www.facebook.com/profile.php?id=61589333812360",
@@ -24,7 +24,6 @@ export const PROFILE = {
 export const BRAND = {
   siteName: "林俞君 Maggie｜高雄房地產顧問",
   shortName: "房地產護理師",
-  lineId: "maggie3377",
   areas: "高雄市 鼓山區 · 左營區 · 三民區",
   focus: "美術館特區 · 農十六重劃區"
 } as const;

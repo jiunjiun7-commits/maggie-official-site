@@ -48,7 +48,7 @@ export default function CardPage() {
           </div>
           <div className="card-actions">
             <Link className="button" href="/card/booking">預約一對一諮詢</Link>
-            <a className="button line-button" href={PROFILE.social.line} target="_blank" rel="noreferrer">加入 LINE</a>
+            <a className="button line-button" href={PROFILE.social.line} target="_blank" rel="noreferrer">加入LINE官方好友</a>
           </div>
           <div className="contact-list">
             <ContactRow symbol="T" value={PROFILE.phone} href={`tel:${PROFILE.phoneRaw}`} />

@@ -435,9 +435,9 @@ export default async function HomePage() {
 
               <ul className="contact">
                 <li>
-                  <span className="contact__k">LINE ID</span>
+                  <span className="contact__k">LINE</span>
                   <a className="contact__v" href={LINE_URL} target="_blank" rel="noreferrer">
-                    {BRAND.lineId}
+                    加入LINE官方好友
                   </a>
                 </li>
                 <li>
@@ -498,7 +498,7 @@ export default async function HomePage() {
           </nav>
           <div className="foot__contact">
             <a href={TEL_URL}>{PROFILE.phone}</a>
-            <a href={LINE_URL} target="_blank" rel="noreferrer">LINE：{BRAND.lineId}</a>
+            <a href={LINE_URL} target="_blank" rel="noreferrer">加入LINE官方好友</a>
           </div>
         </div>
         <div className="wrap foot__legal">
