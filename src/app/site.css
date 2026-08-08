@@ -659,6 +659,8 @@ a.contact__v:hover{ color:var(--yongyi-CERISE); text-decoration:underline; }
   font-size:.79rem; color:#8B7A80; line-height:1.8;
 }
 .foot__legal p{ margin:0 0 6px; }
+.foot__visits{ color:var(--gold-soft) !important; }
+.foot__visits strong{ color:var(--gold); font-weight:700; }
 
 /* ==========================================================================
    手機浮動 CTA

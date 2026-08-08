@@ -10,7 +10,11 @@ import { MILESTONES } from "@/lib/milestones";
 import { BRAND, PROFILE } from "@/lib/profile";
 import { REVIEWS } from "@/lib/reviews";
 import { buildSocialQrList } from "@/lib/social-qr";
+import { recordVisitAndGetStats } from "@/lib/visit-counter";
 import "./site.css";
+
+// 每次載入都要記一筆造訪、讀出最新次數，不能被當成靜態頁面快取。
+export const dynamic = "force-dynamic";
 
 /**
  * 累積成交實績。⚠️ 這是對外公開的業績數字，更新前請先自己核對。
@@ -143,6 +147,7 @@ function ShieldCheckIcon() {
 
 export default async function HomePage() {
   const socialQrItems = await buildSocialQrList(PROFILE.social);
+  const visitStats = await recordVisitAndGetStats();
 
   return (
     <>
@@ -507,6 +512,13 @@ export default async function HomePage() {
             委託前請確認經紀業與經紀人證照資訊。
           </p>
           <p>&copy; {new Date().getFullYear()} 林俞君 Maggie．高雄房地產顧問</p>
+          {visitStats && (
+            <p className="foot__visits" aria-label="網站訪客統計">
+              瀏覽人數累積：<strong>{visitStats.total.toLocaleString("zh-Hant-TW")}</strong>
+              <span aria-hidden="true"> ｜ </span>
+              今日造訪人數：<strong>{visitStats.today.toLocaleString("zh-Hant-TW")}</strong>
+            </p>
+          )}
         </div>
       </footer>
 

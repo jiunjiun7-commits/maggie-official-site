@@ -73,6 +73,12 @@ Vercel 專案 → **Settings** → **Environment Variables**，逐一新增上�
 `BookingForm.tsx` 已經處理這個狀況：伺服器寫入失敗時會自動改由 LINE 送出預約，
 客戶不會看到錯誤畫面，但這筆預約不會出現在後台，需要你自己從 LINE 收單。
 
+### 已經設定過 Supabase，之後又更新了 schema.sql 怎麼辦？
+
+直接把 [`supabase/schema.sql`](supabase/schema.sql) 整份內容重新貼到 SQL Editor 執行一次即可，
+裡面每一段都寫成 `create table if not exists` / `if not exists`，已經存在的表格跟資料不會被清掉，
+只會補上新的表格（例如頁尾的瀏覽人數統計用的 `page_views`）。不需要重新設定環境變數。
+
 ### 安全設計說明
 
 - `SUPABASE_SERVICE_ROLE_KEY` 只在伺服器端使用（API route），程式碼裡用一般環境變數名稱

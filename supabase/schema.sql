@@ -42,3 +42,20 @@ alter table appointments enable row level security;
 -- 只授權給 service_role，不給 anon／authenticated，維持前面說的那層保護。
 grant usage on schema public to service_role;
 grant select, insert, update, delete on public.appointments to service_role;
+
+-- ==========================================================================
+-- 首頁瀏覽次數統計（頁尾的「瀏覽人數累積 / 今日造訪人數」）
+-- 每次有人載入首頁就新增一筆，累積數＝總筆數，今日數＝今天日期範圍內的筆數。
+-- 這只是給訪客看的社會證明小工具，不是關鍵功能，所以沒有做去重複，
+-- 同一個人重新整理頁面也會再算一次。
+-- ==========================================================================
+create table if not exists page_views (
+  id bigint generated always as identity primary key,
+  viewed_at timestamptz not null default now()
+);
+
+create index if not exists page_views_viewed_at_idx on page_views (viewed_at desc);
+
+alter table page_views enable row level security;
+
+grant select, insert on public.page_views to service_role;
