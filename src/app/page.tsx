@@ -5,9 +5,11 @@ import CountUp from "@/app/_components/CountUp";
 import MilestoneCard from "@/app/_components/MilestoneCard";
 import ReviewMarquee from "@/app/_components/ReviewMarquee";
 import SiteInteractions from "@/app/_components/SiteInteractions";
+import SocialQrDock from "@/app/_components/SocialQrDock";
 import { MILESTONES } from "@/lib/milestones";
 import { BRAND, PROFILE } from "@/lib/profile";
 import { REVIEWS } from "@/lib/reviews";
+import { buildSocialQrList } from "@/lib/social-qr";
 import "./site.css";
 
 /**
@@ -139,7 +141,9 @@ function ShieldCheckIcon() {
   );
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const socialQrItems = await buildSocialQrList(PROFILE.social);
+
   return (
     <>
       <script
@@ -147,6 +151,7 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
       />
       <SiteInteractions />
+      <SocialQrDock items={socialQrItems} />
 
       <a className="skip" href="#main">跳到主要內容</a>
 
