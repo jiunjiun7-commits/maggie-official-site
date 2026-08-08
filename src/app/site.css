@@ -807,6 +807,16 @@ a.contact__v:hover{ color:var(--yongyi-CERISE); text-decoration:underline; }
   .qrdock__toggle[aria-expanded="true"]{
     background:var(--gold); color:#141416; transform:scale(1.06);
   }
+  /* LINE 官方品牌綠，固定顏色不跟著 hover 變金色 */
+  .qrdock__toggle--line{ background:#06C755; border-color:#06C755; }
+  .qrdock__toggle--line:hover,
+  .qrdock__toggle--line[aria-expanded="true"]{
+    background:#05a648; border-color:#05a648; color:#fff; transform:scale(1.06);
+  }
+  .qrdock__linemark{
+    color:#fff; font-weight:800; font-size:.72rem; letter-spacing:.03em;
+    font-family:var(--font, inherit);
+  }
   .qrdock__panel{
     position:absolute; right:64px; top:50%; transform:translateY(-50%);
     width:172px; padding:16px 16px 14px;

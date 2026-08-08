@@ -1,15 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SocialQr } from "@/lib/social-qr";
 
 export default function SocialQrDock({ items }: { items: SocialQr[] }) {
   const [openKey, setOpenKey] = useState<string | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // 滑鼠使用者 hover 就會先開啟面板，如果點擊只是單純「切換開關」，
+  // 點下去的瞬間會被判定成「已經開著→關掉」，面板等於沒打開就消失了。
+  // 改成點擊一律「開」，只靠滑鼠移開、點外面或 Esc 來關閉。
+  useEffect(() => {
+    if (!openKey) return;
+    const closeOnOutside = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpenKey(null);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenKey(null);
+    };
+    document.addEventListener("click", closeOnOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("click", closeOnOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [openKey]);
 
   if (!items.length) return null;
 
   return (
-    <div className="qrdock" aria-label="社群與 LINE 諮詢 QR Code">
+    <div className="qrdock" aria-label="社群與 LINE 諮詢 QR Code" ref={rootRef}>
       {items.map((item) => (
         <div
           key={item.key}
@@ -21,7 +41,7 @@ export default function SocialQrDock({ items }: { items: SocialQr[] }) {
             type="button"
             className={`qrdock__toggle qrdock__toggle--${item.key}`}
             aria-expanded={openKey === item.key}
-            onClick={() => setOpenKey((current) => (current === item.key ? null : item.key))}
+            onClick={() => setOpenKey(item.key)}
           >
             <QrDockIcon type={item.key} />
             <span className="sr-only">{item.label} QR Code</span>
@@ -45,12 +65,9 @@ export default function SocialQrDock({ items }: { items: SocialQr[] }) {
 function QrDockIcon({ type }: { type: SocialQr["key"] }) {
   if (type === "line") {
     return (
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path
-          d="M12 3C6.99 3 3 6.36 3 10.5c0 3.4 2.66 6.27 6.32 7.24-.28 1.02-1 3.7-1.15 4.27-.19.7.26.69.54.5.22-.15 3.5-2.36 4.92-3.32.44.06.9.09 1.37.09 5.01 0 9-3.36 9-7.5S17.01 3 12 3Z"
-          fill="currentColor"
-        />
-      </svg>
+      <span className="qrdock__linemark" aria-hidden="true">
+        LINE
+      </span>
     );
   }
   if (type === "instagram") {

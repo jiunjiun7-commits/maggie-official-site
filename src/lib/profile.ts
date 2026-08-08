@@ -16,7 +16,7 @@ export const PROFILE = {
     line: "https://line.me/ti/p/~maggie3377",
     instagram: "https://www.instagram.com/mgg_3377",
     // 沒有的就留空字串，按鈕會自動隱藏
-    facebook: "",
+    facebook: "https://www.facebook.com/profile.php?id=61589333812360",
     youtube: ""
   }
 } as const;
