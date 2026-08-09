@@ -155,6 +155,7 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
       />
+      <div className="bg-portrait" aria-hidden="true" />
       <SiteInteractions />
       <SocialQrDock items={socialQrItems} />
 
@@ -187,6 +188,7 @@ export default async function HomePage() {
         <section className="hero" id="top">
           <div className="wrap hero__inner">
             <div className="hero__text">
+              <p className="hero__mobile-name">林俞君 Maggie｜永義房屋 經理</p>
               <p className="eyebrow">高雄市 鼓山‧左營‧三民｜專營美術館 ‧ 農十六</p>
               <h1>
                 <span className="hl">專業</span>守護，
@@ -205,7 +207,8 @@ export default async function HomePage() {
 
               <div className="hero__cta">
                 <Link className="btn btn--line" data-track="book_hero" href="/card/booking">線上預約諮詢</Link>
-                <a className="btn btn--ghost" data-track="tel_click" href={TEL_URL}>撥打 {PROFILE.phone}</a>
+                <a className="btn btn--ghost hero__cta-line" data-track="line_click" href={LINE_URL} target="_blank" rel="noreferrer">加入 LINE</a>
+                <a className="btn btn--ghost hero__cta-tel" data-track="tel_click" href={TEL_URL}>撥打 {PROFILE.phone}</a>
               </div>
             </div>
 
