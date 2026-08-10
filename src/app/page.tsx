@@ -189,8 +189,7 @@ export default async function HomePage() {
             <div className="hero__text">
               <p className="eyebrow">高雄市 鼓山‧左營‧三民｜專營美術館 ‧ 農十六</p>
               <h1>
-                <span className="hl">專業</span>守護，
-                <span className="hl">真誠</span>陪伴。
+                房仲沒有<span className="hl">崩潰</span>，林俞君還在<span className="hl">帶看</span>
               </h1>
               <p className="lede">
                 我是<strong>林俞君 Maggie</strong>，永義房屋經理。護理師出身，在信義房屋直營體系服務過三年——
