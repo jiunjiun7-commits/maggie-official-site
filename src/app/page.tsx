@@ -192,8 +192,9 @@ export default async function HomePage() {
                 房仲沒有<span className="hl">崩潰</span>，林俞君還在<span className="hl">帶看</span>
               </h1>
               <p className="lede">
-                我是<strong>林俞君 Maggie</strong>，永義房屋經理。護理師出身，在信義房屋直營體系服務過三年——
-                把需求、預算、稅務與風險一次攤開講清楚，讓你在簽名之前就已經安心。
+                我是 <strong>林俞君 Maggie</strong>，永義房屋經理。
+                <br />
+                買房、賣房，或只是想先聊聊，都歡迎找我。
               </p>
 
               <ul className="hero__badges">
