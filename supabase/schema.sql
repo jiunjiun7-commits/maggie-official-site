@@ -90,7 +90,7 @@ grant select, insert on public.events to service_role;
 
 create table if not exists sellers (
   id uuid primary key default gen_random_uuid(),
-  property_name text not null,
+  community_name text not null,
   owner_name text not null,
   engagement_start date not null,
   engagement_end date not null,
@@ -102,7 +102,26 @@ create table if not exists sellers (
   updated_at timestamptz not null default now()
 );
 
+-- 前一版把欄位取名 property_name，後來改叫 community_name（跟後台程式碼一致）。
+-- 這段只在舊欄位還在、新欄位還沒建的情況下才會動作，重複執行是安全的。
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'sellers' and column_name = 'property_name'
+  ) and not exists (
+    select 1 from information_schema.columns
+    where table_name = 'sellers' and column_name = 'community_name'
+  ) then
+    alter table sellers rename column property_name to community_name;
+  end if;
+end $$;
+
+alter table sellers add column if not exists district text not null default '';
+alter table sellers add column if not exists listing_title text not null default '';
+
 create index if not exists sellers_status_idx on sellers (status);
+create index if not exists sellers_district_idx on sellers (district);
 
 alter table sellers enable row level security;
 
@@ -231,6 +250,16 @@ create index if not exists ig_reels_content_engine_idx on ig_reels (content_engi
 alter table ig_reels enable row level security;
 
 grant select, insert, update, delete on public.ig_reels to service_role;
+
+-- 精確發布時間（用來算 24H/72H/7D 提醒節點），跟 published_date 分開存：
+-- published_date 只到「日」，給列表排序/顯示用；published_at 到「分」，給提醒邏輯算時間點用。
+-- 舊資料（一開始用 Initial Data 塞進去的那三支）沒有真實發布時間，寧可讓 published_at
+-- 留空、precision 標成 unknown，也不要瞎猜一個時間（例如當天 09:00）填進去——
+-- 假資料會污染未來「發布時間對成效影響」的分析，比留空更糟。
+-- 提醒邏輯只認 precision = 'exact' 的 Reel，其他一律不產生提醒。
+alter table ig_reels add column if not exists published_at timestamptz;
+alter table ig_reels add column if not exists published_at_precision text not null default 'unknown'
+  check (published_at_precision in ('exact', 'estimated', 'unknown'));
 
 -- 一支 Reel 在同一個階段（24H/72H/7D/Final）只有一筆，重複輸入會覆蓋更新。
 -- 自然數據跟 Paid 數據放在同一列但欄位分開（paid_* 前綴），方便同時間點比較，
