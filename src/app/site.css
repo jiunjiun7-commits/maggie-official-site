@@ -177,7 +177,7 @@ p:last-child{ margin-bottom:0; }
 }
 .hero__badges li span{ font-size:.74rem; font-weight:500; color:var(--ink-mute); letter-spacing:.08em; }
 .hero__badges li:nth-child(1){ border-color:var(--gold); color:var(--gold-deep); }
-.hero__badges li:nth-child(3){ color:var(--gold-deep); }
+.hero__badges li:nth-child(2){ color:var(--gold-deep); }
 
 .hero__cta{ display:flex; flex-wrap:wrap; gap:12px; }
 
