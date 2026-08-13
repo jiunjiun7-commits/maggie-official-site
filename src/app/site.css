@@ -735,7 +735,7 @@ a.contact__v:hover{ color:var(--yongyi-CERISE); text-decoration:underline; }
   }
   .bigstat__item:first-child{ grid-column:1; grid-row:1; }
   .bigstat__item:last-child{ grid-column:1; grid-row:3; }
-  .flow__list{ grid-template-columns:1fr 1fr; }
+  .flow{ display:none; }
 
   .focus{ grid-template-columns:1fr; }
   .focus__label{
