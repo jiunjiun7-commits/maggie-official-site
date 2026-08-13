@@ -1,9 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, isDevBypass, readLineConfig, verifySession } from "@/lib/auth";
 
-/** 保護後台與後台用的 API。客戶端的預約流程不受影響。 */
+/**
+ * 保護後台與後台用的 API。客戶端的預約流程不受影響。
+ * /portal/:path*（屋主前台）刻意不放進 matcher——它靠專屬連結 token 驗證，
+ * 不吃這裡的 LINE 登入 cookie，兩套驗證機制互不相干。
+ */
 export const config = {
-  matcher: ["/admin/:path*", "/api/appointments/:path*"]
+  matcher: [
+    "/admin/:path*",
+    "/api/appointments/:path*",
+    "/api/sellers/:path*",
+    "/api/ig-growth/:path*",
+    "/api/market-radar/:path*"
+  ]
 };
 
 export async function middleware(request: NextRequest) {

@@ -1,0 +1,238 @@
+.portal-page {
+  min-height: 100vh;
+  background: var(--surface-soft);
+  padding: 28px 16px 60px;
+}
+
+.portal-shell {
+  width: min(720px, 100%);
+  margin: 0 auto;
+}
+
+.portal-invalid {
+  width: min(480px, 100%);
+  margin: 80px auto 0;
+  text-align: center;
+  padding: 40px 24px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l, 8px);
+}
+
+.portal-invalid h1 {
+  margin: 0 0 10px;
+  font-size: 22px;
+}
+
+.portal-invalid p {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
+
+.portal-header {
+  background: linear-gradient(150deg, var(--navy-950), var(--navy-800));
+  color: #fff;
+  border-radius: 10px;
+  padding: 24px 26px;
+  margin-bottom: 18px;
+}
+
+.portal-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.portal-header-top h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.portal-header-meta {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  color: #c8d5e6;
+  font-size: 13px;
+}
+
+.tag.status-active {
+  border: 1px solid #2f6f50;
+  color: #9be1bd;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tag.status-sold {
+  border: 1px solid #896728;
+  color: #ffd98b;
+  background: #342914;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tag.status-ended {
+  border: 1px solid var(--line);
+  color: #eee;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.portal-report,
+.portal-history {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 22px 24px;
+  margin-bottom: 16px;
+}
+
+.portal-report h2,
+.portal-history h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+}
+
+.portal-block {
+  border-top: 1px solid var(--line);
+  padding: 16px 0;
+}
+
+.portal-block:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.portal-block h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--gold-600);
+}
+
+.portal-block p {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+.portal-block-highlight {
+  background: var(--gold-pale, #f0e4c4);
+  border-radius: 6px;
+  padding: 14px 16px;
+  border-top: none;
+  margin-top: 8px;
+}
+
+.portal-muted {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.portal-exposure-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portal-exposure-list li {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.portal-exposure-list li span {
+  color: var(--ink-soft);
+}
+
+.portal-stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.portal-stat-row div {
+  min-width: 96px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.portal-stat-row span {
+  display: block;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.portal-competitor-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.portal-competitor-list li {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.portal-competitor-list a {
+  color: var(--gold-600);
+  font-size: 12px;
+}
+
+.portal-checklist {
+  margin: 0 0 8px;
+  padding-left: 18px;
+}
+
+.portal-checklist li {
+  color: var(--ink);
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.portal-history-item {
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+}
+
+.portal-history-item:first-of-type {
+  border-top: none;
+}
+
+.portal-history-item summary {
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.portal-history-item .portal-report-body {
+  margin-top: 12px;
+}

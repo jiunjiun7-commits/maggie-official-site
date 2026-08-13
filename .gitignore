@@ -21,3 +21,6 @@ public/card/abin.jpg
 # 原教材的 .env 範例檔：內容未經檢視，不隨公開 repo 一起發布。
 # 需要的環境變數說明改看 ENV_SETUP.md
 .env.example
+
+.vercel
+.env*
