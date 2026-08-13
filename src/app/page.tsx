@@ -304,9 +304,9 @@ export default async function HomePage() {
             <p className="eyebrow">Service Area</p>
             <h2 className="section__title">我服務的區塊</h2>
             <div className="section__sub area-intro">
-              <p>漂亮的房子、成熟的生活圈，每個人都會喜歡。</p>
+              <p>漂亮的房子、成熟的生活圈，每個人都喜歡。</p>
               <p>但我相信，真正重要的不是哪一個區域，而是哪一個地方最適合您的生活。</p>
-              <p>因此，除了深耕的核心商圈，只要您有需求，我都願意陪您走遍大高雄，一起找到最適合的家。</p>
+              <p>因此除了深耕核心商圈，只要您有需求，我都願意陪您走遍大高雄，一起找到最適合的家！</p>
             </div>
 
             <AreaCarousel areas={AREAS} />
