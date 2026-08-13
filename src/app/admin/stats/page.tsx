@@ -1,4 +1,4 @@
-import Topbar from "@/app/_components/Topbar";
+import Sidebar from "@/app/admin/_components/Sidebar";
 import { listAppointments } from "@/lib/appointment-store";
 import { getEventCounts } from "@/lib/events-store";
 import { statsRangeTaipei, visitCountInRange, type StatsRange } from "@/lib/visit-counter";
@@ -30,10 +30,7 @@ export default async function StatsPage({
 
   return (
     <div className="admin-page">
-      <Topbar admin />
-      <form action="/api/auth/logout" method="post" style={{ padding: "12px 24px 0", textAlign: "right" }}>
-        <button className="admin-logout" type="submit">登出</button>
-      </form>
+      <Sidebar />
       <StatsBoard completed={completed} events={events} range={range} visits={visits} />
     </div>
   );

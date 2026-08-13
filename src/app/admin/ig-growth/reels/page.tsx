@@ -1,4 +1,4 @@
-import Topbar from "@/app/_components/Topbar";
+import Sidebar from "@/app/admin/_components/Sidebar";
 import { listLatestSnapshotByReel, listReels } from "@/lib/ig-reel-store";
 import ReelsBoard from "./ReelsBoard";
 import "../../login/login.css";
@@ -12,10 +12,7 @@ export default async function IgReelsPage() {
 
   return (
     <div className="admin-page">
-      <Topbar admin />
-      <form action="/api/auth/logout" method="post" style={{ padding: "12px 24px 0", textAlign: "right" }}>
-        <button className="admin-logout" type="submit">登出</button>
-      </form>
+      <Sidebar />
       <ReelsBoard initialRows={rows} />
     </div>
   );

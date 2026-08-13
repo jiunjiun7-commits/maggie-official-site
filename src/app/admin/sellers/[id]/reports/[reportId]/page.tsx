@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import Topbar from "@/app/_components/Topbar";
+import Sidebar from "@/app/admin/_components/Sidebar";
 import { getSeller } from "@/lib/seller-store";
 import { getSellerReport } from "@/lib/seller-report-store";
 import ReportForm from "../ReportForm";
@@ -19,7 +19,7 @@ export default async function EditSellerReportPage({
 
   return (
     <div className="admin-page">
-      <Topbar admin />
+      <Sidebar />
       <main className="admin-shell">
         <div className="admin-heading">
           <div>

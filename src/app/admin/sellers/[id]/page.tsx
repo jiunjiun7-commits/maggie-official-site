@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import Topbar from "@/app/_components/Topbar";
+import Sidebar from "@/app/admin/_components/Sidebar";
 import { getSeller } from "@/lib/seller-store";
 import { listSellerReports } from "@/lib/seller-report-store";
 import { hasActiveSellerToken } from "@/lib/seller-portal";
@@ -18,10 +18,7 @@ export default async function SellerDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div className="admin-page">
-      <Topbar admin />
-      <form action="/api/auth/logout" method="post" style={{ padding: "12px 24px 0", textAlign: "right" }}>
-        <button className="admin-logout" type="submit">登出</button>
-      </form>
+      <Sidebar />
       <SellerDetailBoard initialSeller={seller} initialReports={reports} initialHasToken={hasToken} />
     </div>
   );

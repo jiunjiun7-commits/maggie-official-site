@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import Topbar from "@/app/_components/Topbar";
+import Sidebar from "@/app/admin/_components/Sidebar";
 import { getSeller } from "@/lib/seller-store";
 import ReportForm from "../ReportForm";
 import "../../../../login/login.css";
@@ -14,7 +14,7 @@ export default async function NewSellerReportPage({ params }: { params: Promise<
 
   return (
     <div className="admin-page">
-      <Topbar admin />
+      <Sidebar />
       <main className="admin-shell">
         <div className="admin-heading">
           <div>

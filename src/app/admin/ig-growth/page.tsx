@@ -1,5 +1,6 @@
-import Topbar from "@/app/_components/Topbar";
+import Sidebar from "@/app/admin/_components/Sidebar";
 import { getChallengeDashboard } from "@/lib/ig-challenge-store";
+import { listPendingReminders } from "@/lib/ig-reel-store";
 import IgGrowthBoard from "./IgGrowthBoard";
 import "../login/login.css";
 import "./ig-growth.css";
@@ -7,15 +8,12 @@ import "./ig-growth.css";
 export const dynamic = "force-dynamic";
 
 export default async function IgGrowthPage() {
-  const dashboard = await getChallengeDashboard();
+  const [dashboard, reminders] = await Promise.all([getChallengeDashboard(), listPendingReminders()]);
 
   return (
     <div className="admin-page">
-      <Topbar admin />
-      <form action="/api/auth/logout" method="post" style={{ padding: "12px 24px 0", textAlign: "right" }}>
-        <button className="admin-logout" type="submit">登出</button>
-      </form>
-      <IgGrowthBoard initialDashboard={dashboard} />
+      <Sidebar />
+      <IgGrowthBoard initialDashboard={dashboard} reminders={reminders} />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import Topbar from "@/app/_components/Topbar";
+import Sidebar from "@/app/admin/_components/Sidebar";
 import { getArea, listAreaRules } from "@/lib/market-radar-store";
 import AreaDetailBoard from "./AreaDetailBoard";
 import "../../../login/login.css";
@@ -15,10 +15,7 @@ export default async function MarketRadarAreaDetailPage({ params }: { params: Pr
 
   return (
     <div className="admin-page">
-      <Topbar admin />
-      <form action="/api/auth/logout" method="post" style={{ padding: "12px 24px 0", textAlign: "right" }}>
-        <button className="admin-logout" type="submit">登出</button>
-      </form>
+      <Sidebar />
       <AreaDetailBoard initialArea={area} initialRules={rules} />
     </div>
   );
