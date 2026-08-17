@@ -5,6 +5,7 @@ import {
   updateSellerReport,
   type SellerReportInput
 } from "@/lib/seller-report-store";
+import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
 
 export async function GET(
   request: Request,
@@ -61,6 +62,14 @@ export async function PATCH(
   const { id, reportId } = await context.params;
   const body = await request.json().catch(() => ({}));
   const input = parsePartialInput(body);
+
+  if (
+    (input.reportDate && isImplausibleYear(input.reportDate)) ||
+    (input.periodStart && isImplausibleYear(input.periodStart)) ||
+    (input.periodEnd && isImplausibleYear(input.periodEnd))
+  ) {
+    return NextResponse.json({ ok: false, error: IMPLAUSIBLE_YEAR_MESSAGE }, { status: 400 });
+  }
 
   try {
     const report = await updateSellerReport(id, reportId, input);

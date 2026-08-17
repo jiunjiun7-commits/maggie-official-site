@@ -155,7 +155,11 @@ function ReportBody({ report }: { report: SellerReport }) {
             {report.competitors.map((c, i) => (
               <li key={i}>
                 <strong>{c.name}</strong>
-                <span>{c.price} · {c.condition}</span>
+                <span>
+                  {[c.price, c.totalPing, c.layout, c.parking, c.condition]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
                 {c.url ? <a href={c.url} rel="noreferrer" target="_blank">查看物件</a> : null}
               </li>
             ))}

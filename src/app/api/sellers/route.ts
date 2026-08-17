@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSeller, listSellers, type SellerStatus } from "@/lib/seller-store";
+import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
 
 const STATUS: SellerStatus[] = ["active", "sold", "ended"];
 
@@ -22,6 +23,10 @@ export async function POST(request: Request) {
       { ok: false, error: "社區/案名、屋主姓名、委託起訖日為必填。" },
       { status: 400 }
     );
+  }
+
+  if (isImplausibleYear(engagementStart) || isImplausibleYear(engagementEnd)) {
+    return NextResponse.json({ ok: false, error: IMPLAUSIBLE_YEAR_MESSAGE }, { status: 400 });
   }
 
   const seller = await createSeller({

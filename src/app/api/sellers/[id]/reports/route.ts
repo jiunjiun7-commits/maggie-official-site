@@ -5,6 +5,7 @@ import {
   ReportPeriodConflictError,
   type SellerReportInput
 } from "@/lib/seller-report-store";
+import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
@@ -58,6 +59,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const input = parseInput(body);
   if (!input) {
     return NextResponse.json({ ok: false, error: "回報日期與報告週期為必填。" }, { status: 400 });
+  }
+  if (isImplausibleYear(input.reportDate) || isImplausibleYear(input.periodStart) || isImplausibleYear(input.periodEnd)) {
+    return NextResponse.json({ ok: false, error: IMPLAUSIBLE_YEAR_MESSAGE }, { status: 400 });
   }
 
   try {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Seller, SellerStatus } from "@/lib/seller-store";
 import type { SellerReport } from "@/lib/seller-report-store";
+import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
 
 const STATUS_LABEL: Record<SellerStatus, string> = {
   active: "服務中",
@@ -32,9 +33,15 @@ export default function SellerDetailBoard({
 
   async function submitBasicInfo(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setBusy(true);
     setMessage("");
     const form = new FormData(event.currentTarget);
+    const engagementStart = String(form.get("engagementStart") || "");
+    const engagementEnd = String(form.get("engagementEnd") || "");
+    if (isImplausibleYear(engagementStart) || isImplausibleYear(engagementEnd)) {
+      setMessage(IMPLAUSIBLE_YEAR_MESSAGE);
+      return;
+    }
+    setBusy(true);
     try {
       const response = await fetch(`/api/sellers/${seller.id}`, {
         method: "PATCH",

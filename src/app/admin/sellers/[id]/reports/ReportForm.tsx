@@ -9,6 +9,7 @@ import {
   type NextWeekStrategy,
   type SellerReport
 } from "@/lib/seller-report-store";
+import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
 
 function emptyExposure(): Exposure {
   return Object.fromEntries(EXPOSURE_CHANNELS.map((c) => [c.key, { done: false, note: "" }])) as Exposure;
@@ -36,7 +37,17 @@ export default function ReportForm({
   const [marketPriceCuts, setMarketPriceCuts] = useState(initialReport?.marketPriceCuts?.toString() ?? "");
   const [marketSoldCount, setMarketSoldCount] = useState(initialReport?.marketSoldCount?.toString() ?? "");
   const [marketObservationText, setMarketObservationText] = useState(initialReport?.marketObservationText ?? "");
-  const [competitors, setCompetitors] = useState<Competitor[]>(initialReport?.competitors ?? []);
+  const [competitors, setCompetitors] = useState<Competitor[]>(
+    (initialReport?.competitors ?? []).map((c) => ({
+      name: c.name ?? "",
+      price: c.price ?? "",
+      totalPing: c.totalPing ?? "",
+      layout: c.layout ?? "",
+      parking: c.parking ?? "",
+      condition: c.condition ?? "",
+      url: c.url ?? ""
+    }))
+  );
   const [maggieNotes, setMaggieNotes] = useState(initialReport?.maggieNotes ?? "");
   const [checklist, setChecklist] = useState<string[]>(initialReport?.nextWeekStrategy?.checklist ?? []);
   const [strategyNote, setStrategyNote] = useState(initialReport?.nextWeekStrategy?.note ?? "");
@@ -55,7 +66,10 @@ export default function ReportForm({
   }
 
   function addCompetitor() {
-    setCompetitors((current) => [...current, { name: "", price: "", condition: "", url: "" }]);
+    setCompetitors((current) => [
+      ...current,
+      { name: "", price: "", totalPing: "", layout: "", parking: "", condition: "", url: "" }
+    ]);
   }
 
   function updateCompetitor(index: number, patch: Partial<Competitor>) {
@@ -68,8 +82,14 @@ export default function ReportForm({
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setBusy(true);
     setMessage("");
+
+    if (isImplausibleYear(reportDate) || isImplausibleYear(periodStart) || isImplausibleYear(periodEnd)) {
+      setMessage(IMPLAUSIBLE_YEAR_MESSAGE);
+      return;
+    }
+
+    setBusy(true);
 
     const nextWeekStrategy: NextWeekStrategy = { checklist, note: strategyNote };
     const body = {
@@ -220,28 +240,47 @@ export default function ReportForm({
       <section className="seller-panel">
         <h2>競品</h2>
         {competitors.map((competitor, index) => (
-          <div className="competitor-row" key={index}>
-            <input
-              onChange={(e) => updateCompetitor(index, { name: e.target.value })}
-              placeholder="名稱"
-              value={competitor.name}
-            />
-            <input
-              onChange={(e) => updateCompetitor(index, { price: e.target.value })}
-              placeholder="開價"
-              value={competitor.price}
-            />
-            <input
-              onChange={(e) => updateCompetitor(index, { condition: e.target.value })}
-              placeholder="狀況"
-              value={competitor.condition}
-            />
-            <input
-              onChange={(e) => updateCompetitor(index, { url: e.target.value })}
-              placeholder="連結（可選）"
-              value={competitor.url}
-            />
-            <button className="button-secondary" onClick={() => removeCompetitor(index)} type="button">刪除</button>
+          <div className="competitor-card" key={index}>
+            <div className="competitor-row-top">
+              <input
+                onChange={(e) => updateCompetitor(index, { name: e.target.value })}
+                placeholder="名稱"
+                value={competitor.name}
+              />
+              <input
+                onChange={(e) => updateCompetitor(index, { url: e.target.value })}
+                placeholder="連結（可選）"
+                value={competitor.url}
+              />
+              <button className="button-secondary" onClick={() => removeCompetitor(index)} type="button">刪除</button>
+            </div>
+            <div className="competitor-row-bottom">
+              <input
+                onChange={(e) => updateCompetitor(index, { price: e.target.value })}
+                placeholder="開價"
+                value={competitor.price}
+              />
+              <input
+                onChange={(e) => updateCompetitor(index, { totalPing: e.target.value })}
+                placeholder="總坪數"
+                value={competitor.totalPing}
+              />
+              <input
+                onChange={(e) => updateCompetitor(index, { layout: e.target.value })}
+                placeholder="格局（例如：大四房）"
+                value={competitor.layout}
+              />
+              <input
+                onChange={(e) => updateCompetitor(index, { parking: e.target.value })}
+                placeholder="車位"
+                value={competitor.parking}
+              />
+              <input
+                onChange={(e) => updateCompetitor(index, { condition: e.target.value })}
+                placeholder="狀況"
+                value={competitor.condition}
+              />
+            </div>
           </div>
         ))}
         <button className="button-secondary" onClick={addCompetitor} type="button">＋ 新增競品</button>

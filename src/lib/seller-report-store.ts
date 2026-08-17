@@ -30,7 +30,15 @@ export const EXPOSURE_CHANNELS: { key: ExposureChannelKey; label: string }[] = [
 export type ExposureEntry = { done: boolean; note: string };
 export type Exposure = Partial<Record<ExposureChannelKey, ExposureEntry>>;
 
-export type Competitor = { name: string; price: string; condition: string; url: string };
+export type Competitor = {
+  name: string;
+  price: string;
+  totalPing: string;
+  layout: string;
+  parking: string;
+  condition: string;
+  url: string;
+};
 
 export type NextWeekStrategy = { checklist: string[]; note: string };
 

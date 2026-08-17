@@ -267,14 +267,28 @@
   font-size: 13px;
 }
 
-.competitor-row {
+.competitor-card {
+  border: 1px solid #2b405e;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.competitor-row-top {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
   gap: 8px;
   margin-bottom: 8px;
 }
 
-.competitor-row input {
+.competitor-row-bottom {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.competitor-row-top input,
+.competitor-row-bottom input {
   min-height: 38px;
   background: #0b1626;
   border: 1px solid #2b405e;
@@ -285,7 +299,8 @@
 }
 
 @media (max-width: 680px) {
-  .competitor-row {
+  .competitor-row-top,
+  .competitor-row-bottom {
     grid-template-columns: 1fr;
   }
 }

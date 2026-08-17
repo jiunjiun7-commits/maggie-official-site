@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSeller, updateSeller, type SellerStatus } from "@/lib/seller-store";
+import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
 
 const STATUS: SellerStatus[] = ["active", "sold", "ended"];
 
@@ -19,8 +20,18 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (typeof body.district === "string") input.district = body.district.trim();
   if (typeof body.listingTitle === "string") input.listingTitle = body.listingTitle.trim();
   if (typeof body.ownerName === "string") input.ownerName = body.ownerName.trim();
-  if (typeof body.engagementStart === "string") input.engagementStart = body.engagementStart;
-  if (typeof body.engagementEnd === "string") input.engagementEnd = body.engagementEnd;
+  if (typeof body.engagementStart === "string") {
+    if (isImplausibleYear(body.engagementStart)) {
+      return NextResponse.json({ ok: false, error: IMPLAUSIBLE_YEAR_MESSAGE }, { status: 400 });
+    }
+    input.engagementStart = body.engagementStart;
+  }
+  if (typeof body.engagementEnd === "string") {
+    if (isImplausibleYear(body.engagementEnd)) {
+      return NextResponse.json({ ok: false, error: IMPLAUSIBLE_YEAR_MESSAGE }, { status: 400 });
+    }
+    input.engagementEnd = body.engagementEnd;
+  }
   if (typeof body.askingPrice === "string") input.askingPrice = body.askingPrice;
   if (typeof body.address === "string") input.address = body.address;
   if (typeof body.internalNote === "string") input.internalNote = body.internalNote;

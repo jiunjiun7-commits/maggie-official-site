@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Seller, SellerStatus } from "@/lib/seller-store";
 import { reportFreshness, type ReportFreshness } from "@/lib/seller-report-store";
+import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
 
 export type SellerCardRow = { seller: Seller; latestReportDate: string | null };
 
@@ -38,9 +39,15 @@ export default function SellersBoard({
 
   async function submitCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setBusy(true);
     setMessage("");
     const form = new FormData(event.currentTarget);
+    const engagementStart = String(form.get("engagementStart") || "");
+    const engagementEnd = String(form.get("engagementEnd") || "");
+    if (isImplausibleYear(engagementStart) || isImplausibleYear(engagementEnd)) {
+      setMessage(IMPLAUSIBLE_YEAR_MESSAGE);
+      return;
+    }
+    setBusy(true);
     try {
       const response = await fetch("/api/sellers", {
         method: "POST",
