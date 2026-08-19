@@ -254,7 +254,7 @@ export default async function HomePage() {
               </p>
               <p>
                 轉職後，於<strong>信義房屋</strong>累積三年完整的交易與服務經驗，
-                目前擔任永義房屋經理，持續深耕高雄房地產市場。
+                目前擔任<strong>永義房屋經理</strong>，持續深耕高雄房地產市場。
               </p>
               <p>
                 對我而言，房仲不只是帶看與成交，而是陪伴每一位屋主與買方，
