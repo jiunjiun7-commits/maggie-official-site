@@ -1023,3 +1023,26 @@ create index if not exists official_transaction_community_candidates_status_idx
 
 alter table official_transaction_community_candidates enable row level security;
 grant select, insert, update, delete on public.official_transaction_community_candidates to service_role;
+
+-- ==========================================================================
+-- LINE 通知起算點設定（Phase 10.12）
+--
+-- 只保存一個值：line_digest_cutoff_at，決定 LINE 每日摘要「從哪個時間點之後產生的
+-- area match 才算新資料」。單列（singleton）表，不做 key-value 通用設計，因為目前
+-- 只有這一個需求。id 用 boolean + check(id) 強制整張表只能有一列。
+--
+-- 不用既有 table 存的原因：
+-- - market_radar_areas／market_radar_area_rules 是「每個區域各自的設定」，cutoff 是
+--   跨區域、全站只有一個值，語意不合，日後增減區域還要注意搬移。
+-- - radar_sync_runs 是「每次執行的歷史紀錄」，不是「目前生效中的設定」，拿某一筆
+--   run 的 finished_at 當 cutoff 會把「log」跟「設定」兩種語意混在一起。
+-- ==========================================================================
+create table if not exists market_radar_notification_settings (
+  id boolean primary key default true,
+  line_digest_cutoff_at timestamptz not null,
+  updated_at timestamptz not null default now(),
+  constraint market_radar_notification_settings_singleton check (id)
+);
+
+alter table market_radar_notification_settings enable row level security;
+grant select, insert, update, delete on public.market_radar_notification_settings to service_role;

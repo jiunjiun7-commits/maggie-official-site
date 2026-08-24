@@ -411,7 +411,7 @@ export type NotificationEvent = {
   geocodeStatus: string;
   geocodeMatchStatus: string | null;
   geocodeSource: string | null;
-  matchedAreas: { areaId: string; areaName: string; matchedRuleIds: string[] }[];
+  matchedAreas: { areaId: string; areaName: string; matchedRuleIds: string[]; matchedAt: string }[];
 };
 
 /**
@@ -438,6 +438,53 @@ function parseLayoutCount(rawValue: unknown): number | null {
  */
 export async function listPendingNotificationEvents(): Promise<NotificationEvent[]> {
   return buildPendingNotificationEvents();
+}
+
+/**
+ * Phase 10.12｜LINE 通知「新資料起算點」：純函式篩選，把每個事件的 matchedAreas 只留下
+ * 「這個 (交易, 區域) 組合第一次被算出命中的時間（matchedAt，來自 official_transaction_area_matches
+ * .computed_at）晚於 cutoffAt」的部分，全部被篩掉的事件整筆移除。
+ *
+ * 只影響「LINE 每日摘要要不要包含這筆」，完全不影響：
+ * - listPendingNotificationEvents()／後台「待通知」瀏覽頁（admin/market-radar/notifications）
+ *   仍然用未篩選版本，104 筆歷史 pending 照樣看得到，不會消失。
+ * - official_transactions／official_transaction_area_matches 本身：這裡只做記憶體內篩選，
+ *   不刪除、不修改任何一列資料。
+ *
+ * 已知邊界情況（刻意不隱藏）：如果某個 (交易, 區域) 組合的 matched_rule_ids 之後又被
+ * recompute_area_matches 判定為「有變化」，底層 RPC 會把 computed_at 更新成 now()，這筆歷史
+ * pending 就會被視為「新的」而重新排入 LINE 摘要。目前農十六／中北南美術的比對規則是固定的
+ * （bbox／已知社區門牌），不會無故變動，發生機率低；但如果之後真的調整了任何一區的判定規則，
+ * 這是需要知道的行為，不是 bug。
+ */
+export function filterNotificationEventsAfterCutoff(events: NotificationEvent[], cutoffAt: string): NotificationEvent[] {
+  return events
+    .map((e) => ({ ...e, matchedAreas: e.matchedAreas.filter((a) => a.matchedAt > cutoffAt) }))
+    .filter((e) => e.matchedAreas.length > 0);
+}
+
+/**
+ * Phase 10.12｜給 LINE 每日摘要用的「待通知清單」：在 listPendingNotificationEvents() 的結果上
+ * 再套用 cutoff 篩選。cutoffAt 目前由呼叫端明確傳入（例如已驗收過的某次 Production Cron 完成
+ * 時間），這支函式本身不讀取、不假設任何預設值，避免在還沒有正式的「起算點設定」儲存機制前
+ * 就悄悄套用一個沒人核准過的時間。
+ */
+export async function listPendingNotificationEventsAfter(cutoffAt: string): Promise<NotificationEvent[]> {
+  const events = await buildPendingNotificationEvents();
+  return filterNotificationEventsAfterCutoff(events, cutoffAt);
+}
+
+/**
+ * Phase 10.12｜讀取 LINE 通知起算點（market_radar_notification_settings，singleton 表，
+ * 只會有 0 或 1 列）。回傳 null 代表還沒設定過，呼叫端（orchestration）要對這個情況
+ * fail-closed（當作沒有新資料，不建立 digest），不能猜一個預設值。
+ */
+export async function getNotificationCutoffAt(): Promise<string | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  const { data, error } = await supabase.from("market_radar_notification_settings").select("line_digest_cutoff_at").limit(1);
+  if (error) throw error;
+  return (data?.[0] as { line_digest_cutoff_at: string } | undefined)?.line_digest_cutoff_at ?? null;
 }
 
 /** 只查單一筆交易的待通知事件（發送前重新確認用，不信任前端傳來的內容）。已通知過則回傳 null。 */
@@ -467,12 +514,12 @@ async function buildPendingNotificationEvents(
   const activeAreaIds = new Set(allAreas.filter((a) => a.isActive).map((a) => a.id));
   const areaNameById = new Map(allAreas.map((a) => [a.id, a.name]));
 
-  type MatchRow = { official_transaction_id: string; area_id: string; matched_rule_ids: string[] };
+  type MatchRow = { official_transaction_id: string; area_id: string; matched_rule_ids: string[]; computed_at: string };
   const matches: MatchRow[] = [];
   if (onlyTransactionId) {
     const { data, error } = await supabase
       .from("official_transaction_area_matches")
-      .select("official_transaction_id, area_id, matched_rule_ids")
+      .select("official_transaction_id, area_id, matched_rule_ids, computed_at")
       .eq("official_transaction_id", onlyTransactionId);
     if (error) throw error;
     matches.push(...(data as MatchRow[]));
@@ -481,7 +528,7 @@ async function buildPendingNotificationEvents(
     for (let from = 0; ; from += MATCH_PAGE) {
       const { data, error } = await supabase
         .from("official_transaction_area_matches")
-        .select("official_transaction_id, area_id, matched_rule_ids")
+        .select("official_transaction_id, area_id, matched_rule_ids, computed_at")
         .order("official_transaction_id", { ascending: true })
         .range(from, from + MATCH_PAGE - 1);
       if (error) throw error;
@@ -605,7 +652,8 @@ async function buildPendingNotificationEvents(
       matchedAreas: txnMatches.map((m) => ({
         areaId: m.area_id,
         areaName: areaNameById.get(m.area_id) ?? "（未知區域）",
-        matchedRuleIds: m.matched_rule_ids
+        matchedRuleIds: m.matched_rule_ids,
+        matchedAt: m.computed_at
       }))
     });
   }

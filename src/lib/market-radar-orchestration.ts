@@ -1,8 +1,9 @@
 import { getSupabaseClient } from "@/lib/supabase";
-import { recomputeAllActiveAreaMatches, listPendingNotificationEvents } from "@/lib/market-radar-store";
+import { recomputeAllActiveAreaMatches, listPendingNotificationEventsAfter, getNotificationCutoffAt } from "@/lib/market-radar-store";
 import { recomputeAllCommunityAddressAreaMatches } from "@/lib/community-address-area-matching-store";
 import { recomputeCommunityMatches } from "@/lib/community-matching-store";
-import { groupPendingEventsByArea, buildDailyDigestText } from "@/lib/line-messaging";
+import { groupPendingEventsByArea, buildDailyDigestText, readLineMessagingConfig } from "@/lib/line-messaging";
+import { sendAreaDigestsForEvents } from "@/lib/market-radar-notification-sender";
 import { syncOfficialTransactions } from "@/lib/plvr-sync-service";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -44,6 +45,13 @@ export type MarketRadarSyncSummary = {
   status: "success" | "partial" | "failed";
   errors: string[];
   areaBreakdown: Record<string, { matchingStrategy: "geographic" | "community_address"; matchedCount: number }>;
+  newEventCount: number;
+  areasAttempted: number;
+  messagesAttempted: number;
+  messagesSent: number;
+  notificationRecordsWritten: number;
+  failedAreas: string[];
+  notificationErrors: string[];
 };
 
 function emptySummary(startedAt: string): MarketRadarSyncSummary {
@@ -68,7 +76,14 @@ function emptySummary(startedAt: string): MarketRadarSyncSummary {
     notificationNeeded: false,
     status: "failed",
     errors: [],
-    areaBreakdown: {}
+    areaBreakdown: {},
+    newEventCount: 0,
+    areasAttempted: 0,
+    messagesAttempted: 0,
+    messagesSent: 0,
+    notificationRecordsWritten: 0,
+    failedAreas: [],
+    notificationErrors: []
   };
 }
 
@@ -119,6 +134,13 @@ export async function runMarketRadarSync(runType: RunType = "manual"): Promise<M
           digestLength: summary.digestLength,
           notificationNeeded: summary.notificationNeeded,
           areaBreakdown: summary.areaBreakdown,
+          newEventCount: summary.newEventCount,
+          areasAttempted: summary.areasAttempted,
+          messagesAttempted: summary.messagesAttempted,
+          messagesSent: summary.messagesSent,
+          notificationRecordsWritten: summary.notificationRecordsWritten,
+          failedAreas: summary.failedAreas,
+          notificationErrors: summary.notificationErrors,
           errorsSoFar: errors
         }
       })
@@ -205,10 +227,28 @@ export async function runMarketRadarSync(runType: RunType = "manual"): Promise<M
   }
   await checkpoint("community_matching_completed");
 
-  // ---------- 5+6. pending notification 查詢 ＋ 每日摘要組字（不呼叫 LINE，不寫 notification 紀錄） ----------
+  // ---------- 5+6+7. pending notification 查詢 ＋ 摘要組字 ＋ 正式 LINE 發送 ----------
+  // Phase 10.12｜只把「cutoff（market_radar_notification_settings.line_digest_cutoff_at）之後
+  // 才產生的 area match」算進 LINE 摘要，避免把歷史 pending 誤當新資料。cutoff 還沒設定時
+  // fail-closed（當作 0 筆新事件，不建立 digest／不發送）。後台「待通知」瀏覽頁用的是另一支
+  // 不套用 cutoff 的 listPendingNotificationEvents()，不受這裡影響。
+  //
+  // Phase 10.13｜正式接上 LINE 發送。規則：
+  // - 只有 sync/geocode/area matching/community matching 全部沒有錯誤（priorStepsOk）、
+  //   而且真的有 cutoff 後新事件時，才嘗試發送——任何前面步驟出錯就整批留到下次 Cron 重試，
+  //   不要在資料可能不完整的狀態下發通知。
+  // - 依區域分組、每區獨立發送（sendAreaDigestsForEvents 內部保證：一區全部訊息都成功才
+  //   標記該區交易已通知；某區失敗不影響其他區域，也不會標記失敗的區域）。
+  // - 用的是 Phase 10.10.1 已驗收的手機版 formatter（buildAreaSplitDigestMessages 內部呼叫）。
+  const priorStepsOk = errors.length === 0;
   try {
-    const events = await listPendingNotificationEvents();
+    const cutoffAt = await getNotificationCutoffAt();
+    if (cutoffAt === null) {
+      errors.push("尚未設定 line_digest_cutoff_at，本次跳過 LINE 摘要／發送（fail-closed，避免誤把歷史 pending 當新資料）");
+    }
+    const events = cutoffAt !== null ? await listPendingNotificationEventsAfter(cutoffAt) : [];
     summary.pendingNotificationCount = events.length;
+    summary.newEventCount = events.length;
     summary.notificationNeeded = events.length > 0;
 
     if (events.length > 0) {
@@ -217,9 +257,31 @@ export async function runMarketRadarSync(runType: RunType = "manual"): Promise<M
       const digestText = buildDailyDigestText(groups, dateLabel);
       summary.digestPreview = digestText;
       summary.digestLength = digestText.length;
+
+      if (!priorStepsOk) {
+        errors.push(`前面步驟有錯誤，本次跳過 LINE 發送（${events.length} 筆新事件留待下次 Cron 重試）`);
+      } else {
+        const lineConfig = readLineMessagingConfig();
+        if (lineConfig === null) {
+          errors.push("尚未設定 LINE_MESSAGING_CHANNEL_ACCESS_TOKEN / LINE_NOTIFY_USER_ID，本次跳過 LINE 發送");
+        } else {
+          const sendResult = await sendAreaDigestsForEvents(events, lineConfig, dateLabel);
+          summary.areasAttempted = sendResult.areaResults.length;
+          summary.messagesAttempted = sendResult.areaResults.reduce((sum, r) => sum + r.messagesTotal, 0);
+          summary.messagesSent = sendResult.totalMessagesSent;
+          summary.notificationRecordsWritten = sendResult.totalTransactionsNotified;
+          summary.failedAreas = sendResult.areaResults.filter((r) => r.status === "failed").map((r) => r.areaName);
+          summary.notificationErrors = sendResult.areaResults
+            .filter((r) => r.status === "failed")
+            .map((r) => `${r.areaName}：${r.error ?? "未知錯誤"}`);
+          if (summary.notificationErrors.length > 0) {
+            errors.push(...summary.notificationErrors.map((e) => `LINE 發送失敗（${e}），該區留待下次 Cron 重試`));
+          }
+        }
+      }
     }
   } catch (err) {
-    errors.push(`Pending notification / digest 組字失敗：${err instanceof Error ? err.message : String(err)}`);
+    errors.push(`Pending notification / digest / LINE 發送失敗：${err instanceof Error ? err.message : String(err)}`);
   }
   await checkpoint("digest_completed");
 
@@ -260,6 +322,13 @@ export async function runMarketRadarSync(runType: RunType = "manual"): Promise<M
         digestLength: summary.digestLength,
         notificationNeeded: summary.notificationNeeded,
         areaBreakdown: summary.areaBreakdown,
+        newEventCount: summary.newEventCount,
+        areasAttempted: summary.areasAttempted,
+        messagesAttempted: summary.messagesAttempted,
+        messagesSent: summary.messagesSent,
+        notificationRecordsWritten: summary.notificationRecordsWritten,
+        failedAreas: summary.failedAreas,
+        notificationErrors: summary.notificationErrors,
         errors
       }
     })
