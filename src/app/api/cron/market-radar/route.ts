@@ -3,6 +3,14 @@ import { runMarketRadarSync } from "@/lib/market-radar-orchestration";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Maggie 已在 Vercel Dashboard → Production Deployment → Resources 直接確認這支 Function
+// 目前平台允許到 ≤300 秒（不是我方猜測或文件推論）。本機完整跑完一次約 26-27 秒
+// （見 src/lib/market-radar-orchestration.ts 的 checkpoint 記錄），Production 環境的冷啟動與
+// 對外部（政府開放資料、Supabase）的網路延遲可能更慢，這裡抓 120 秒：比本機實測時間留出
+// 約 4 倍餘裕，同時不會直接頂到平台上限——頂到上限的意義不大，卡住時應該讓它在合理時間內
+// 失敗、留下 checkpoint 供排查，而不是放到 300 秒才發現卡死。只設定這一支 route，
+// 不影響其他 API 路由的預設值。
+export const maxDuration = 120;
 
 /**
  * Vercel Cron 專用入口，刻意放在 /api/cron/* 而不是 /api/market-radar/*——後者被

@@ -87,6 +87,42 @@ export async function runMarketRadarSync(runType: RunType = "manual"): Promise<M
   const runId = (runRow as { id: string }).id;
   summary.runId = runId;
 
+  // ---------- Checkpoint：每個步驟結束後把目前為止的進度＋耗時寫回 radar_sync_runs.detail。
+  // 沿用既有欄位（不新增 schema），純粹是為了 Function 被 timeout 中斷時，最後一次成功的
+  // checkpoint 仍然留在資料庫裡，能看出「死在哪一步」，不用只能猜。每次呼叫都是完整覆寫
+  // detail（不是部分 patch），因為只有這個 process 會寫這個 run id，不會有併發互相覆蓋的問題。
+  const stepTimings: Record<string, number> = {};
+  const t0 = Date.now();
+  const checkpoint = async (stepName: string) => {
+    stepTimings[stepName] = Date.now() - t0;
+    const { error } = await supabase
+      .from("radar_sync_runs")
+      .update({
+        detail: {
+          lastCompletedStep: stepName,
+          stepTimingsMs: stepTimings,
+          sourceSeason: summary.sourceSeason,
+          fetched: summary.fetched,
+          inserted: summary.inserted,
+          duplicatesSkipped: summary.duplicatesSkipped,
+          geocodePending: summary.geocodePending,
+          geocodeResolved: summary.geocodeResolved,
+          geocodeFailed: summary.geocodeFailed,
+          areaMatched: summary.areaMatched,
+          communityAutoMatched: summary.communityAutoMatched,
+          communityNeedsConfirmation: summary.communityNeedsConfirmation,
+          communityNoCommunity: summary.communityNoCommunity,
+          pendingNotificationCount: summary.pendingNotificationCount,
+          digestLength: summary.digestLength,
+          notificationNeeded: summary.notificationNeeded,
+          errorsSoFar: errors
+        }
+      })
+      .eq("id", runId);
+    // checkpoint 寫入失敗不該讓整個流程掛掉（它只是輔助除錯用），記一筆 warning 就好。
+    if (error) errors.push(`checkpoint（${stepName}）寫入失敗：${error.message}`);
+  };
+
   // ---------- 1. 官方實價資料同步 ----------
   try {
     const syncResult = await syncOfficialTransactions(supabase);
@@ -97,8 +133,10 @@ export async function runMarketRadarSync(runType: RunType = "manual"): Promise<M
   } catch (err) {
     errors.push(`官方實價同步失敗：${err instanceof Error ? err.message : String(err)}`);
   }
+  await checkpoint("sync_completed");
 
-  // ---------- 2. geocode（pending-only 預設，已處理過的不會重跑） ----------
+  // ---------- 2. geocode（pending-only 預設，已處理過的不會重跑；pending=0 時 geocode-service.js
+  // 會在讀完官方交易列表後、還沒碰 KCG cache 之前就直接 return，不會下載/初始化 106MB 資料集） ----------
   try {
     await syncOfficialTransactionGeocodes(supabase, {});
   } catch (err) {
@@ -116,6 +154,7 @@ export async function runMarketRadarSync(runType: RunType = "manual"): Promise<M
   } catch (err) {
     errors.push(`geocode 狀態統計失敗：${err instanceof Error ? err.message : String(err)}`);
   }
+  await checkpoint("geocode_completed");
 
   // ---------- 3. 區域 matching（所有啟用中區域） ----------
   let areaMatchedTransactionIds: string[] = [];
@@ -129,6 +168,7 @@ export async function runMarketRadarSync(runType: RunType = "manual"): Promise<M
   } catch (err) {
     errors.push(`區域 matching 失敗：${err instanceof Error ? err.message : String(err)}`);
   }
+  await checkpoint("area_matching_completed");
 
   // ---------- 4. Community matching（只處理命中啟用中區域的交易，沿用既有 idempotent service） ----------
   try {
@@ -144,6 +184,7 @@ export async function runMarketRadarSync(runType: RunType = "manual"): Promise<M
   } catch (err) {
     errors.push(`Community matching 失敗：${err instanceof Error ? err.message : String(err)}`);
   }
+  await checkpoint("community_matching_completed");
 
   // ---------- 5+6. pending notification 查詢 ＋ 每日摘要組字（不呼叫 LINE，不寫 notification 紀錄） ----------
   try {
@@ -161,6 +202,7 @@ export async function runMarketRadarSync(runType: RunType = "manual"): Promise<M
   } catch (err) {
     errors.push(`Pending notification / digest 組字失敗：${err instanceof Error ? err.message : String(err)}`);
   }
+  await checkpoint("digest_completed");
 
   // ---------- 7. execution log：寫回完成狀態 ----------
   const finishedAt = new Date().toISOString();
@@ -182,6 +224,8 @@ export async function runMarketRadarSync(runType: RunType = "manual"): Promise<M
       new_transactions_count: summary.inserted,
       error_message: errors.length > 0 ? errors.join(" | ") : null,
       detail: {
+        lastCompletedStep: "all_steps_completed",
+        stepTimingsMs: stepTimings,
         sourceSeason: summary.sourceSeason,
         fetched: summary.fetched,
         inserted: summary.inserted,
