@@ -539,7 +539,7 @@ grant select, insert, update, delete on public.line_notification_log to service_
 
 -- 第一階段預設監控區域（可在後台停用／修改，這裡只是給個起點）
 insert into market_radar_areas (name, district, sort_order)
-select '農十六', '左營區', 1
+select '農十六', '鼓山區', 1
 where not exists (select 1 from market_radar_areas where name = '農十六');
 
 insert into market_radar_areas (name, district, sort_order)
@@ -590,3 +590,436 @@ where not exists (select 1 from product_categories where key = 'factory');
 insert into product_categories (key, label, sort_order)
 select 'other', '其他', 8
 where not exists (select 1 from product_categories where key = 'other');
+
+-- ==========================================================================
+-- 階段五：成交行情分類 ＋ 公司內部成交情報
+-- 分類邏輯：物件用途 + 物件型態 兩個欄位組合查表才能得到成交行情分類，
+-- 不是只看官方「建物型態」。查不到／衝突／資料不全一律 needs_review=true，不猜測。
+-- ==========================================================================
+
+-- 舊的 8 分類目前完全沒有任何 official_transactions / internal_deals 列引用
+-- （category_id 全部是 null），可以安全清空重 seed 成使用者提供的 12 分類。
+-- product_category_rules 也一併清空重建，因為舊規則只有單欄位（建物型態），
+-- 這次改成雙欄位（物件用途＋物件型態）比對，新舊規則語意不同，不適合保留舊資料。
+delete from product_category_rules;
+delete from product_categories;
+
+insert into product_categories (key, label, sort_order) values
+  ('large_building', '大樓/華廈', 1),
+  ('apartment', '公寓', 2),
+  ('suite', '套房', 3),
+  ('townhouse_villa', '透天/別墅', 4),
+  ('storefront', '店面', 5),
+  ('office', '辦公', 6),
+  ('factory', '工廠', 7),
+  ('factory_office', '廠辦', 8),
+  ('land', '土地', 9),
+  ('parking', '車位', 10),
+  ('other', '其他(含倉庫/農舍)', 11),
+  ('presale', '預售屋', 12);
+
+-- product_category_rules 改成雙欄位比對規則：
+--   main_use_pattern / source_building_type 皆為 ''（空字串）代表「萬用」，比對任何值。
+--   category_id 允許 null：needs_review=true 的規則列，代表「這個組合本來就查不到，不用猜」
+--   （對應使用者提供圖片裡標示「提示，不可查」的格子）。
+alter table product_category_rules alter column category_id drop not null;
+alter table product_category_rules alter column source_building_type set default '';
+alter table product_category_rules add column if not exists main_use_pattern text not null default '';
+alter table product_category_rules add column if not exists needs_review boolean not null default false;
+
+create index if not exists product_category_rules_lookup_idx
+  on product_category_rules (main_use_pattern, source_building_type);
+
+-- 種子規則資料：完整依使用者提供的「物件用途 × 物件型態 → 成交行情分類」對照圖片轉譯。
+-- 物件用途＝店面／辦公／車位／土地／倉庫／其他 這幾類在圖片裡不分物件型態，
+-- 用 source_building_type='' 萬用比對整個用途底下的任何型態。
+
+-- 物件用途＝住宅
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住宅', '無電梯公寓' from product_categories where key = 'apartment';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住宅', '華廈' from product_categories where key = 'large_building';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住宅', '大樓' from product_categories where key = 'large_building';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住宅', '樓中樓' from product_categories where key = 'large_building';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住宅', '透天' from product_categories where key = 'townhouse_villa';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住宅', '別墅' from product_categories where key = 'townhouse_villa';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住宅', '一般套房' from product_categories where key = 'suite';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住宅', '商務套房' from product_categories where key = 'suite';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住宅', '學生套房' from product_categories where key = 'suite';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住宅', '農舍' from product_categories where key = 'other';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住宅', '農業用' from product_categories where key = 'other';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住宅', '其他用' from product_categories where key = 'other';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住宅', '其他' from product_categories where key = 'other';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type, needs_review)
+  values (null, '住宅', '住宅用', true);
+insert into product_category_rules (category_id, main_use_pattern, source_building_type, needs_review)
+  values (null, '住宅', '商業用', true);
+insert into product_category_rules (category_id, main_use_pattern, source_building_type, needs_review)
+  values (null, '住宅', '無', true);
+
+-- 物件用途＝店面（不分物件型態）
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '店面', '' from product_categories where key = 'storefront';
+
+-- 物件用途＝辦公（不分物件型態）
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '辦公', '' from product_categories where key = 'office';
+
+-- 物件用途＝住辦
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住辦', '無電梯公寓' from product_categories where key = 'apartment';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住辦', '華廈' from product_categories where key = 'large_building';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住辦', '大樓' from product_categories where key = 'large_building';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住辦', '樓中樓' from product_categories where key = 'large_building';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住辦', '透天' from product_categories where key = 'townhouse_villa';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住辦', '別墅' from product_categories where key = 'townhouse_villa';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住辦', '一般套房' from product_categories where key = 'suite';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住辦', '其他' from product_categories where key = 'other';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type, needs_review)
+  values (null, '住辦', '無', true);
+
+-- 物件用途＝住店（跟「住辦」同一套對照）
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住店', '無電梯公寓' from product_categories where key = 'apartment';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住店', '華廈' from product_categories where key = 'large_building';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住店', '大樓' from product_categories where key = 'large_building';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住店', '樓中樓' from product_categories where key = 'large_building';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住店', '透天' from product_categories where key = 'townhouse_villa';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住店', '別墅' from product_categories where key = 'townhouse_villa';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住店', '一般套房' from product_categories where key = 'suite';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '住店', '其他' from product_categories where key = 'other';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type, needs_review)
+  values (null, '住店', '無', true);
+
+-- 物件用途＝車位（不分物件型態）
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '車位', '' from product_categories where key = 'parking';
+
+-- 物件用途＝工廠
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '工廠', '住宅' from product_categories where key = 'factory';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '工廠', '賣場' from product_categories where key = 'factory';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '工廠', '工業區' from product_categories where key = 'factory';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '工廠', '標準' from product_categories where key = 'factory';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '工廠', '臨時' from product_categories where key = 'factory';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '工廠', '無電梯公寓' from product_categories where key = 'factory';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '工廠', '華廈' from product_categories where key = 'factory';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '工廠', '大樓' from product_categories where key = 'factory';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '工廠', '透天' from product_categories where key = 'factory';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '工廠', '別墅' from product_categories where key = 'factory';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '工廠', '一般套房' from product_categories where key = 'factory';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '工廠', '一般' from product_categories where key = 'factory';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '工廠', '其他' from product_categories where key = 'factory';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '工廠', '無' from product_categories where key = 'factory';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '工廠', '辦公' from product_categories where key = 'factory_office';
+
+-- 物件用途＝土地／倉庫／其他（不分物件型態）
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '土地', '' from product_categories where key = 'land';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '倉庫', '' from product_categories where key = 'other';
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '其他', '' from product_categories where key = 'other';
+
+-- 物件型態＝預售屋：圖片裡「預售屋」是獨立於用途/型態矩陣之外的一格，
+-- 這裡用「物件用途萬用、物件型態=預售屋」讓任何用途只要型態選預售屋都直接歸類，
+-- 不然「預售屋」這個分類會永遠配不到規則、選不到。
+insert into product_category_rules (category_id, main_use_pattern, source_building_type)
+  select id, '', '預售屋' from product_categories where key = 'presale';
+
+-- 官方實價登錄：新增分類信心不足標記，category_id／building_type_raw／main_use 三者都已存在且互不覆蓋。
+alter table official_transactions add column if not exists needs_review boolean not null default false;
+
+-- 公司內部成交情報：新增情報來源類型（跟 match_status 配對狀態完全獨立)，
+-- 以及手動輸入表單需要的欄位。match_status 沿用既有三個值（unmatched/candidate/matched），不擴充。
+alter table internal_deals add column if not exists source_type text not null default 'internal_announcement'
+  check (source_type in ('internal_announcement', 'external_brand_intel', 'other'));
+alter table internal_deals add column if not exists main_use_input text not null default '';
+alter table internal_deals add column if not exists building_type_input text not null default '';
+alter table internal_deals add column if not exists needs_review boolean not null default false;
+alter table internal_deals add column if not exists parking_raw text not null default '';
+alter table internal_deals add column if not exists deal_brand text;
+alter table internal_deals add column if not exists deal_branch text;
+alter table internal_deals add column if not exists info_source text;
+alter table internal_deals add column if not exists verified boolean not null default false;
+alter table internal_deals add column if not exists internal_announced_date date;
+alter table internal_deals add column if not exists info_received_date date;
+alter table internal_deals add column if not exists community_name_input text not null default '';
+
+create index if not exists internal_deals_source_type_idx on internal_deals (source_type);
+
+-- 候選比對表：內部情報 ↔ 官方實登，系統只產生候選、不自動判定同一筆。
+-- 跟 internal_deals.matched_official_id（人工確認後才寫入的「最終那一筆」）分開，
+-- 兩邊原始資料全程不變動、不刪除。這張表本階段先建好，實際「尋找候選」比對功能留到下一階段做。
+create table if not exists internal_deal_candidates (
+  id uuid primary key default gen_random_uuid(),
+  internal_deal_id uuid not null references internal_deals(id) on delete cascade,
+  official_transaction_id uuid not null references official_transactions(id) on delete cascade,
+  match_reason jsonb not null default '{}',
+  created_at timestamptz not null default now(),
+  unique (internal_deal_id, official_transaction_id)
+);
+
+create index if not exists internal_deal_candidates_internal_idx on internal_deal_candidates (internal_deal_id);
+
+alter table internal_deal_candidates enable row level security;
+grant select, insert, update, delete on public.internal_deal_candidates to service_role;
+
+-- ==========================================================================
+-- 地圖範圍升級：Polygon 多邊形（保留 bbox 相容，純新增不動既有資料）
+-- 一個區域可以同時有多個 bbox、多個 polygon，跟路段/地段/社區/地址關鍵字規則並存不互斥
+-- ——這點 schema 本來就支援（market_radar_area_rules 對 market_radar_areas 是多對一）。
+-- ==========================================================================
+alter table market_radar_area_rules
+  drop constraint if exists market_radar_area_rules_rule_type_check;
+alter table market_radar_area_rules
+  add constraint market_radar_area_rules_rule_type_check
+  check (rule_type in ('road', 'district', 'section', 'community', 'address_keyword', 'bbox', 'polygon'));
+
+-- polygon 格式：[{"lat":22.68,"lng":120.29}, ...]，至少 3 個點，首尾隱含自動封閉。
+-- 跟 bbox 分開存成獨立欄位，不合併成通用 geometry 欄位，避免動到既有 bbox 資料的存放方式。
+alter table market_radar_area_rules add column if not exists polygon jsonb;
+
+-- ==========================================================================
+-- official_transactions 一般門牌地址 geocoding（高雄市政府門牌坐標開放資料）
+-- 只負責「地址 → lat/lng」，不碰 area_id、不做 Polygon/bbox 區域分類，那是下一階段的事。
+-- lat/lng 欄位本來就存在（schema.sql 439 行附近），這裡只新增狀態/來源/可信程度追蹤欄位，
+-- 讓同步服務知道哪些列已經處理過（不必每次重新解析已經 resolved 的資料）。
+-- ==========================================================================
+alter table official_transactions add column if not exists geocode_status text not null default 'pending'
+  check (geocode_status in ('pending', 'resolved', 'failed', 'skipped_land_parcel', 'skipped_unparseable_address'));
+-- 只在 geocode_status='resolved' 時有值：exact/normalized/approximate，定義見 scripts/geocoding/resolve-address.js
+alter table official_transactions add column if not exists geocode_match_status text;
+-- 例如 kcg_address_csv@2026-08-16，記錄是用哪一版門牌坐標資料解析出來的，供日後追查／重新解析用
+alter table official_transactions add column if not exists geocode_source text;
+-- 解析細節（matchMethod／matchedHouseNum／reason），保留給人工檢查用，不是給程式邏輯依賴的欄位
+alter table official_transactions add column if not exists geocode_detail jsonb not null default '{}';
+alter table official_transactions add column if not exists geocode_resolved_at timestamptz;
+
+create index if not exists official_transactions_geocode_status_idx on official_transactions (geocode_status);
+
+-- ==========================================================================
+-- official_transaction ↔ market_radar_area 多對多命中結果
+--
+-- official_transactions.area_id 保留欄位不刪，但正式停用、不再雙寫——單一 nullable FK
+-- 結構上無法表達「同時命中多個區域」，改用這張關聯表當唯一正式來源。
+-- 這張表是「衍生／可重算」的快取結果，不是原始資料：official_transactions 本身
+-- 不管有沒有座標、有沒有命中任何區域，永遠正常保留，這張表沒有列不代表那筆交易有問題。
+--
+-- unique(official_transaction_id, area_id)：同一筆交易對同一個區域最多一列，
+-- 該區域底下同時命中好幾條 bbox/polygon 規則時，記在同一列的 matched_rule_ids 陣列裡，
+-- 不是每條規則各開一列（避免同區域內部規則重疊造成計數混亂）。
+-- ==========================================================================
+create table if not exists official_transaction_area_matches (
+  id uuid primary key default gen_random_uuid(),
+  official_transaction_id uuid not null references official_transactions(id) on delete cascade,
+  area_id uuid not null references market_radar_areas(id) on delete cascade,
+  matched_rule_ids jsonb not null default '[]',
+  computed_at timestamptz not null default now(),
+  unique (official_transaction_id, area_id)
+);
+
+create index if not exists official_transaction_area_matches_area_idx on official_transaction_area_matches (area_id);
+create index if not exists official_transaction_area_matches_txn_idx on official_transaction_area_matches (official_transaction_id);
+
+alter table official_transaction_area_matches enable row level security;
+grant select, insert, update, delete on public.official_transaction_area_matches to service_role;
+
+-- ==========================================================================
+-- recompute_area_matches：單一區域的「安全替換」在資料庫端一個 transaction 內完成。
+--
+-- 命中判定（isPointInBbox/isPointInPolygon）本身仍在應用層算好（沿用 market-radar-store.ts
+-- 既有、已驗證過的同一套函式），這支 function 只負責「拿到這次算出來的新結果後，
+-- 怎麼安全地把它跟舊結果做差異比對並寫回資料庫」這一段——這段才是真正需要 atomic
+-- 保證的部分：insert 缺的、delete 多的、update 變了的，必須全部成功或全部不生效，
+-- 不能中途失敗留下新舊混雜的半更新狀態。
+--
+-- p_matches 格式：[{ "official_transaction_id": "<uuid>", "matched_rule_ids": ["<uuid>", ...] }, ...]
+-- 只放「這次算出來確實有命中」的交易；沒命中的交易完全不用出現在陣列裡，
+-- 函式會自動把資料庫裡屬於這個區域、但這次不在新結果裡的舊列刪掉。
+-- ==========================================================================
+create or replace function recompute_area_matches(p_area_id uuid, p_matches jsonb)
+returns table(inserted_count int, deleted_count int, updated_count int, unchanged_count int)
+language plpgsql
+as $$
+declare
+  v_inserted int;
+  v_deleted int;
+  v_updated int;
+  v_unchanged int;
+begin
+  create temporary table _new_matches (
+    official_transaction_id uuid primary key,
+    matched_rule_ids jsonb
+  ) on commit drop;
+
+  insert into _new_matches (official_transaction_id, matched_rule_ids)
+  select (elem->>'official_transaction_id')::uuid, coalesce(elem->'matched_rule_ids', '[]'::jsonb)
+  from jsonb_array_elements(p_matches) as elem;
+
+  create temporary table _old_matches on commit drop as
+  select official_transaction_id, matched_rule_ids
+  from official_transaction_area_matches
+  where area_id = p_area_id;
+
+  create temporary table _diff on commit drop as
+  select
+    coalesce(n.official_transaction_id, o.official_transaction_id) as official_transaction_id,
+    n.matched_rule_ids as new_rule_ids,
+    case
+      when o.official_transaction_id is null then 'insert'
+      when n.official_transaction_id is null then 'delete'
+      when n.matched_rule_ids is distinct from o.matched_rule_ids then 'update'
+      else 'unchanged'
+    end as action
+  from _new_matches n
+  full outer join _old_matches o on o.official_transaction_id = n.official_transaction_id;
+
+  delete from official_transaction_area_matches m
+  using _diff d
+  where m.area_id = p_area_id
+    and m.official_transaction_id = d.official_transaction_id
+    and d.action = 'delete';
+
+  update official_transaction_area_matches m
+  set matched_rule_ids = d.new_rule_ids, computed_at = now()
+  from _diff d
+  where m.area_id = p_area_id
+    and m.official_transaction_id = d.official_transaction_id
+    and d.action = 'update';
+
+  insert into official_transaction_area_matches (official_transaction_id, area_id, matched_rule_ids, computed_at)
+  select d.official_transaction_id, p_area_id, d.new_rule_ids, now()
+  from _diff d
+  where d.action = 'insert';
+
+  select
+    count(*) filter (where action = 'insert'),
+    count(*) filter (where action = 'delete'),
+    count(*) filter (where action = 'update'),
+    count(*) filter (where action = 'unchanged')
+  into v_inserted, v_deleted, v_updated, v_unchanged
+  from _diff;
+
+  return query select v_inserted, v_deleted, v_updated, v_unchanged;
+end;
+$$;
+
+grant execute on function recompute_area_matches(uuid, jsonb) to service_role;
+
+-- ==========================================================================
+-- 通知中心：official_transaction_area_notifications
+--
+-- 只代表「這筆交易×這個區域的組合，已經實際透過某個通道成功送出通知」。
+-- 這張表本身不等於「人工看過/確認過」——後台 Preview 頁面的唯讀檢視、
+-- 「已預覽」之類的動作，一律不寫入這張表，避免未來真的接上 LINE 時，
+-- 系統誤判「這筆已經人工看過＝已經推播過」而漏發。
+-- unique(official_transaction_id, area_id) 的粒度跟 official_transaction_area_matches
+-- 一致，確保同一筆交易在同一個區域最多只會被記錄通知過一次。
+-- ==========================================================================
+create table if not exists official_transaction_area_notifications (
+  id uuid primary key default gen_random_uuid(),
+  official_transaction_id uuid not null references official_transactions(id) on delete cascade,
+  area_id uuid not null references market_radar_areas(id) on delete cascade,
+  channel text not null check (channel in ('line')),
+  notified_at timestamptz not null default now(),
+  unique (official_transaction_id, area_id)
+);
+
+create index if not exists official_transaction_area_notifications_txn_idx
+  on official_transaction_area_notifications (official_transaction_id);
+
+alter table official_transaction_area_notifications enable row level security;
+grant select, insert, update, delete on public.official_transaction_area_notifications to service_role;
+
+-- ==========================================================================
+-- 社區資料庫／社區自動辨識（第一階段：schema only，這階段不寫入任何資料）
+--
+-- 設計原則：
+-- - communities 是「社區主檔」，由 Maggie 確認過的資料組成，不是官方資料的複製品。
+-- - 一個 community 可以對應多個門牌（community_addresses），因為同一個社區常常
+--   有好幾個不同的進出門牌／不同棟。
+-- - 交易 × 社區的配對狀態獨立存在 official_transaction_community_candidates，
+--   不直接覆蓋 official_transactions.community_id，配對邏輯可以隨時重跑、
+--   保留歷史，原始交易資料完全不動。
+-- ==========================================================================
+
+alter table communities add column if not exists aliases text[] not null default '{}';
+alter table communities add column if not exists total_floors int;
+alter table communities add column if not exists building_type_raw text;
+alter table communities add column if not exists created_from text not null default 'manual'
+  check (created_from in ('manual', 'auto_matched'));
+
+-- 一個社區可對應多個門牌（同社區不同棟/不同進出口地址）。
+-- unique(district, road, house_number)：同一個門牌只能屬於一個社區，避免衝突。
+create table if not exists community_addresses (
+  id uuid primary key default gen_random_uuid(),
+  community_id uuid not null references communities(id) on delete cascade,
+  district text not null,
+  road text not null,
+  house_number text not null,
+  created_at timestamptz not null default now(),
+  unique (district, road, house_number)
+);
+
+create index if not exists community_addresses_community_idx on community_addresses (community_id);
+
+alter table community_addresses enable row level security;
+grant select, insert, update, delete on public.community_addresses to service_role;
+
+-- 交易 × 社區的配對狀態。community_id 為 null 代表「還沒配對到任何社區」
+-- （needs_confirmation 或 no_community 都可能是 null，差別在 match_status）。
+create table if not exists official_transaction_community_candidates (
+  id uuid primary key default gen_random_uuid(),
+  official_transaction_id uuid not null references official_transactions(id) on delete cascade,
+  community_id uuid references communities(id) on delete set null,
+  match_status text not null check (match_status in ('auto_matched', 'needs_confirmation', 'confirmed', 'no_community')),
+  match_reason jsonb not null default '{}',
+  created_at timestamptz not null default now(),
+  unique (official_transaction_id)
+);
+
+create index if not exists official_transaction_community_candidates_status_idx
+  on official_transaction_community_candidates (match_status);
+
+alter table official_transaction_community_candidates enable row level security;
+grant select, insert, update, delete on public.official_transaction_community_candidates to service_role;

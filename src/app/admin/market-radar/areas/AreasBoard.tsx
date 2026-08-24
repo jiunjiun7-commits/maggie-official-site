@@ -45,6 +45,9 @@ export default function AreasBoard({ initialAreas }: { initialAreas: MarketRadar
           <Link className="button-secondary" href="/admin/market-radar/communities">
             社區資料庫
           </Link>
+          <Link className="button-secondary" href="/admin/market-radar/notifications">
+            通知中心
+          </Link>
           <button className="button" onClick={() => setShowForm((v) => !v)} type="button">
             {showForm ? "取消" : "＋ 新增區域"}
           </button>

@@ -157,60 +157,298 @@
   min-height: 38px;
 }
 
-.map-area-picker {
+/* ==========================================================================
+   地圖範圍設定 Modal
+   ========================================================================== */
+
+.area-map-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 10, 20, 0.72);
+  z-index: 1000;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  padding: 5vh 5vw;
 }
 
-.map-area-picker-toolbar {
+.area-map-modal {
+  width: 90vw;
+  height: 90vh;
+  background: #101e37;
+  border: 1px solid #243955;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.area-map-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid #243955;
+  font-size: 16px;
+}
+
+.area-map-modal-close {
+  background: none;
+  border: none;
+  color: #9fb0c7;
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px 8px;
+}
+
+.area-map-modal-close:hover {
+  color: #f2f0ea;
+}
+
+.area-map-modal-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  border-bottom: 1px solid #243955;
+}
+
+.area-map-modal-hint,
+.area-map-modal-drawing-hint {
+  color: #9fb0c7;
+  font-size: 13px;
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.area-map-modal-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.area-map-modal-sidebar {
+  width: 190px;
+  border-right: 1px solid #243955;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.15s ease;
+  position: relative;
+}
+
+.area-map-modal-sidebar.collapsed {
+  width: 36px;
+}
+
+.area-map-modal-sidebar-toggle {
+  position: absolute;
+  top: 8px;
+  right: -14px;
+  z-index: 5;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #2b405e;
+  background: #182a48;
+  color: #f2f0ea;
+  cursor: pointer;
+}
+
+.area-map-modal-sidebar-list {
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.area-map-modal-sidebar-count {
+  color: #9fb0c7;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.area-map-modal-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.area-map-modal-sidebar-item-label {
+  flex: 1;
+  text-align: left;
+  background: #0b1626;
+  border: 1px solid #2b405e;
+  color: #d9e6f5;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.area-map-modal-sidebar-item.active .area-map-modal-sidebar-item-label {
+  border-color: #2f8fd6;
+  color: #f2f0ea;
+  background: #0f2138;
+}
+
+.area-map-modal-sidebar-item-delete {
+  background: none;
+  border: none;
+  color: #6f7f99;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 6px;
+  border-radius: 6px;
+}
+
+.area-map-modal-sidebar-item-delete:hover {
+  color: #e5647a;
+  background: rgba(229, 100, 122, 0.12);
+}
+
+.area-map-modal-sidebar-empty {
+  color: #6f7f99;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.area-map-modal-map-wrap {
+  flex: 1;
+  position: relative;
+}
+
+.area-map-modal-map {
+  position: absolute;
+  inset: 0;
+}
+
+.area-map-modal-edit-bar {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  border: 1px solid #2f8fd6;
+  background: rgba(15, 33, 56, 0.96);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: #f2f0ea;
+  font-size: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.area-map-modal-edit-actions {
+  display: flex;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
-.map-area-picker-hint {
-  color: #9fb0c7;
-  font-size: 12px;
-}
-
-.map-area-picker-map {
-  height: 360px;
-  border: 1px solid #2b405e;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.map-area-picker-bounds {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 8px;
-}
-
-.map-area-picker-bounds label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  color: #9fb0c7;
-}
-
-.map-area-picker-bounds input {
-  background: #0b1626;
-  border: 1px solid #2b405e;
+/* 邊長標籤：跟隨編輯中的形狀邊線中點顯示，純顯示不可互動 */
+.area-map-distance-label {
+  background: rgba(11, 22, 38, 0.85);
   color: #f2f0ea;
-  border-radius: 6px;
-  padding: 8px 10px;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
 }
 
-.map-area-picker-empty {
-  color: #9fb0c7;
-  font-size: 13px;
+/* ==========================================================================
+   Geoman 控制點放大＋視覺區分（只在地圖範圍 Modal 裡套用，不影響其他地圖）
+   一般人第一眼要能看出「這些點可以拖」，預設 14px/10px 太小，這裡明顯放大。
+   ========================================================================== */
+.area-map-modal-map .marker-icon {
+  width: 26px !important;
+  height: 26px !important;
+  margin: -13px 0 0 -13px !important;
+  background-color: #2f8fd6 !important;
+  border: 3px solid #ffffff !important;
+  box-shadow: 0 0 0 2px #2f8fd6, 0 2px 8px rgba(0, 0, 0, 0.45);
+  cursor: grab;
+  transition: transform 0.12s ease;
+}
+
+.area-map-modal-map .marker-icon:hover {
+  transform: scale(1.2);
+}
+
+.area-map-modal-map .marker-icon.leaflet-dragging,
+.area-map-modal-map .marker-icon:active {
+  cursor: grabbing;
+}
+
+/* 邊中點（可以拖出來變成新的節點）：跟主要控制點用不同顏色/樣式區分，且比主要控制點小一點 */
+.area-map-modal-map .marker-icon-middle {
+  width: 18px !important;
+  height: 18px !important;
+  margin: -9px 0 0 -9px !important;
+  background-color: #ffffff !important;
+  border: 3px dashed #2f8fd6 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  opacity: 0.85;
+  cursor: copy;
+}
+
+.area-map-modal-map .marker-icon-middle:hover {
+  opacity: 1;
+  transform: scale(1.25);
+}
+
+@media (max-width: 900px) {
+  .area-map-modal {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+  }
+  .area-map-modal-overlay {
+    padding: 0;
+  }
+  .area-map-modal-sidebar {
+    width: 140px;
+  }
 }
 
 @media (max-width: 900px) {
   .radar-detail-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ==========================================================================
+   通知中心：唯讀事件清單表格
+   ========================================================================== */
+.radar-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.radar-table th,
+.radar-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #243955;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.radar-table th {
+  color: #9fb0c7;
+  font-weight: 700;
+}
+
+.radar-table td:last-child,
+.radar-table th:last-child {
+  white-space: normal;
+  min-width: 220px;
 }

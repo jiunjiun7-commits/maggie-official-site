@@ -24,3 +24,10 @@ public/card/abin.jpg
 
 .vercel
 .env*
+
+# 高雄市政府門牌坐標開放資料快取（106MB+，每月更新，屬公開政府資料，不隨程式碼進版控）
+scripts/data/
+
+# Phase 3～9 各階段的 Preview／QA report／執行紀錄（跑腳本產生的資料快照，不是程式碼，
+# 每次執行都會累積新檔案，不應該讓 production repo 無限脹大；本機檔案不刪除，只是不追蹤）。
+scripts/output/
