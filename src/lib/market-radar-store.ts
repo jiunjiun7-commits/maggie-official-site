@@ -356,8 +356,21 @@ export type AllAreaMatchRecomputeResult = {
 };
 
 /**
- * 對「所有目前啟用中」的區域各自呼叫一次 recomputeAreaMatches()（單一區域的邏輯完全不變，
- * 這裡只是加一層迴圈批次入口，給 orchestration 用，不影響既有「單一區域重算」API route）。
+ * 對「所有目前啟用中、且實際配置了 bbox/polygon 地理規則」的區域各自呼叫一次
+ * recomputeAreaMatches()（單一區域的邏輯完全不變）。
+ *
+ * Phase 10.8 修正：這支函式以前不分青紅皂白對「所有啟用中區域」都呼叫
+ * recomputeAreaMatches()——問題是 recomputeAreaMatches() 只認 bbox/polygon 規則，
+ * 沒有這兩種規則的區域（例如用 community_addresses 門牌比對的中/北/南美術）算出來的
+ * matches 必定是空陣列，會被底層 recompute_area_matches RPC 的 diff 邏輯當成
+ * 「這次完全沒有命中」，把該區域既有的 area matches 整批刪除——等於每次 Cron 執行都會
+ * 誤刪其他比對機制寫入的資料。
+ *
+ * 修正後：先查這個區域是否真的有至少一條有效 bbox/polygon 規則，沒有就完全跳過、
+ * 不呼叫 recomputeAreaMatches()，把這個區域的比對工作留給其他機制（例如
+ * recomputeAllCommunityAddressAreaMatches()，見 community-address-area-matching-store.ts）。
+ * 判斷依據是「這個區域實際有沒有配置地理規則」，不是區域名稱字串比對，未來新增同類型
+ * 區域也會自動套用同一套邏輯。
  */
 export async function recomputeAllActiveAreaMatches(): Promise<AllAreaMatchRecomputeResult> {
   const supabase = getSupabaseClient();
@@ -368,6 +381,9 @@ export async function recomputeAllActiveAreaMatches(): Promise<AllAreaMatchRecom
 
   const areaResults: { areaId: string; areaName: string; result: AreaMatchRecomputeResult }[] = [];
   for (const area of activeAreas) {
+    const rules = await listAreaRules(area.id);
+    const hasGeoRule = rules.some((r) => (r.ruleType === "bbox" && r.bbox) || (r.ruleType === "polygon" && r.polygon));
+    if (!hasGeoRule) continue; // 沒有地理規則，交給其他機制處理，絕對不能呼叫 recomputeAreaMatches()
     const result = await recomputeAreaMatches(area.id);
     areaResults.push({ areaId: area.id, areaName: area.name, result });
   }
@@ -388,12 +404,26 @@ export type NotificationEvent = {
   floorRaw: string;
   floorNumber: number | null;
   totalFloors: number | null;
+  roomCount: number | null;
+  hallCount: number | null;
+  bathCount: number | null;
   communityName: string | null;
   geocodeStatus: string;
   geocodeMatchStatus: string | null;
   geocodeSource: string | null;
   matchedAreas: { areaId: string; areaName: string; matchedRuleIds: string[] }[];
 };
+
+/**
+ * 格局（房/廳/衛）解析，跟 official-transaction-overview-store.ts 的 parseLayoutCount() 完全同一套
+ * 規則（沿用 raw_data 的官方「建物現況格局-房/廳/衛」欄位，不推算），這裡另外存一份小型純函式
+ * 是為了避免 market-radar-store.ts ↔ official-transaction-overview-store.ts 互相 import 造成循環依賴。
+ */
+function parseLayoutCount(rawValue: unknown): number | null {
+  if (typeof rawValue !== "string" || rawValue.trim() === "") return null;
+  const n = Number(rawValue.trim());
+  return Number.isFinite(n) ? n : null;
+}
 
 /**
  * 待通知清單（通知中心 Preview 用）：把 official_transaction_area_matches 依交易分組，
@@ -416,7 +446,20 @@ export async function getPendingNotificationEventById(officialTransactionId: str
   return events.find((e) => e.officialTransactionId === officialTransactionId) ?? null;
 }
 
-async function buildPendingNotificationEvents(onlyTransactionId?: string): Promise<NotificationEvent[]> {
+/**
+ * 純唯讀：查單一筆交易目前的通知事件內容，不論這筆是否已經通知過（供排版 Preview 驗收用，
+ * 例如重新用已發送過的交易產生格式預覽）。跟 getPendingNotificationEventById 的差異只在
+ * 這裡不套用「排除已通知」的過濾——本身不寫入、不影響任何通知/matching 資料或邏輯。
+ */
+export async function getNotificationEventByIdForPreview(officialTransactionId: string): Promise<NotificationEvent | null> {
+  const events = await buildPendingNotificationEvents(officialTransactionId, { includeNotified: true });
+  return events.find((e) => e.officialTransactionId === officialTransactionId) ?? null;
+}
+
+async function buildPendingNotificationEvents(
+  onlyTransactionId?: string,
+  options?: { includeNotified?: boolean }
+): Promise<NotificationEvent[]> {
   const supabase = getSupabaseClient();
   if (!supabase) return [];
 
@@ -465,7 +508,9 @@ async function buildPendingNotificationEvents(onlyTransactionId?: string): Promi
     if (page.length < NOTIFIED_PAGE) break;
   }
   const notifiedKeys = new Set(notified.map((n) => `${n.official_transaction_id}:${n.area_id}`));
-  const pendingMatches = activeMatches.filter((m) => !notifiedKeys.has(`${m.official_transaction_id}:${m.area_id}`));
+  const pendingMatches = options?.includeNotified
+    ? activeMatches
+    : activeMatches.filter((m) => !notifiedKeys.has(`${m.official_transaction_id}:${m.area_id}`));
   if (pendingMatches.length === 0) return [];
 
   const transactionIds = [...new Set(pendingMatches.map((m) => m.official_transaction_id))];
@@ -547,6 +592,9 @@ async function buildPendingNotificationEvents(onlyTransactionId?: string): Promi
       floorRaw: txn.floor_raw,
       floorNumber: parseChineseFloorLabel(txn.floor_raw),
       totalFloors: parseChineseFloorLabel(typeof txn.raw_data?.["總樓層數"] === "string" ? (txn.raw_data["總樓層數"] as string) : null),
+      roomCount: parseLayoutCount(txn.raw_data?.["建物現況格局-房"]),
+      hallCount: parseLayoutCount(txn.raw_data?.["建物現況格局-廳"]),
+      bathCount: parseLayoutCount(txn.raw_data?.["建物現況格局-衛"]),
       communityName: (() => {
         const communityId = candidatesByTxnId.get(txnId);
         return communityId ? communityNameById.get(communityId) ?? null : null;

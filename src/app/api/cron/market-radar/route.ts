@@ -62,6 +62,7 @@ export async function GET(request: Request) {
       pendingNotificationCount: summary.pendingNotificationCount,
       digestLength: summary.digestLength,
       notificationNeeded: summary.notificationNeeded,
+      areaBreakdown: summary.areaBreakdown,
       errors: summary.errors
     });
   } catch (err) {

@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { href: "/admin/sellers", label: "屋主案件", icon: "🏠" },
   { href: "/admin/ig-growth", label: "IG 10K", icon: "📈" },
   { href: "/admin/stats", label: "數據", icon: "📊" },
-  { href: "/admin/market-radar/areas", label: "房市雷達", icon: "📡", activePrefix: "/admin/market-radar" }
+  { href: "/admin/market-radar", label: "房市雷達", icon: "📡", activePrefix: "/admin/market-radar" }
 ];
 
 export default function Sidebar() {

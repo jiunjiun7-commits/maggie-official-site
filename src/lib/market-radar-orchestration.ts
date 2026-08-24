@@ -1,5 +1,6 @@
 import { getSupabaseClient } from "@/lib/supabase";
 import { recomputeAllActiveAreaMatches, listPendingNotificationEvents } from "@/lib/market-radar-store";
+import { recomputeAllCommunityAddressAreaMatches } from "@/lib/community-address-area-matching-store";
 import { recomputeCommunityMatches } from "@/lib/community-matching-store";
 import { groupPendingEventsByArea, buildDailyDigestText } from "@/lib/line-messaging";
 import { syncOfficialTransactions } from "@/lib/plvr-sync-service";
@@ -42,6 +43,7 @@ export type MarketRadarSyncSummary = {
   notificationNeeded: boolean;
   status: "success" | "partial" | "failed";
   errors: string[];
+  areaBreakdown: Record<string, { matchingStrategy: "geographic" | "community_address"; matchedCount: number }>;
 };
 
 function emptySummary(startedAt: string): MarketRadarSyncSummary {
@@ -65,7 +67,8 @@ function emptySummary(startedAt: string): MarketRadarSyncSummary {
     digestPreview: "",
     notificationNeeded: false,
     status: "failed",
-    errors: []
+    errors: [],
+    areaBreakdown: {}
   };
 }
 
@@ -115,6 +118,7 @@ export async function runMarketRadarSync(runType: RunType = "manual"): Promise<M
           pendingNotificationCount: summary.pendingNotificationCount,
           digestLength: summary.digestLength,
           notificationNeeded: summary.notificationNeeded,
+          areaBreakdown: summary.areaBreakdown,
           errorsSoFar: errors
         }
       })
@@ -156,11 +160,26 @@ export async function runMarketRadarSync(runType: RunType = "manual"): Promise<M
   }
   await checkpoint("geocode_completed");
 
-  // ---------- 3. 區域 matching（所有啟用中區域） ----------
+  // ---------- 3. 區域 matching：兩種機制分流處理，互斥、不重疊 ----------
+  // 地理型（bbox/polygon，目前是農十六）走 recomputeAllActiveAreaMatches()；
+  // 門牌型（community_addresses，目前是中/北/南美術）走 recomputeAllCommunityAddressAreaMatches()。
+  // 兩支函式內部都會先檢查「這個區域到底有沒有配置對應的規則/社區」才動手，不會誤觸對方
+  // 負責的區域，也不會因為某區沒有地理規則就把它既有的 area matches 清空（Phase 10.8 修正）。
   let areaMatchedTransactionIds: string[] = [];
   try {
-    const areaResult = await recomputeAllActiveAreaMatches();
-    summary.areaMatched = areaResult.totalAreaMatchesAfter;
+    const geoAreaResult = await recomputeAllActiveAreaMatches();
+    summary.areaMatched = geoAreaResult.totalAreaMatchesAfter;
+    for (const r of geoAreaResult.areaResults) {
+      summary.areaBreakdown[r.areaName] = { matchingStrategy: "geographic", matchedCount: r.result.matchedCount };
+    }
+
+    const addressAreaResult = await recomputeAllCommunityAddressAreaMatches();
+    for (const r of addressAreaResult.areaResults) {
+      summary.areaBreakdown[r.areaName] = { matchingStrategy: "community_address", matchedCount: r.result.matchedCount };
+    }
+
+    const { count: totalAfter } = await supabase.from("official_transaction_area_matches").select("id", { count: "exact", head: true });
+    summary.areaMatched = totalAfter ?? summary.areaMatched;
 
     const { data: matchRows, error: matchError } = await supabase.from("official_transaction_area_matches").select("official_transaction_id");
     if (matchError) throw matchError;
@@ -240,6 +259,7 @@ export async function runMarketRadarSync(runType: RunType = "manual"): Promise<M
         pendingNotificationCount: summary.pendingNotificationCount,
         digestLength: summary.digestLength,
         notificationNeeded: summary.notificationNeeded,
+        areaBreakdown: summary.areaBreakdown,
         errors
       }
     })
