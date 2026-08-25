@@ -44,11 +44,44 @@ export type OfficialTransactionOverviewFilters = {
   matchStatus?: OfficialTransactionMatchStatus;
   communitySearch?: string;
   addressSearch?: string;
+  /**
+   * Phase 11｜快速查行情用：單一關鍵字，社區名稱「或」地址任一比對到就算命中（OR，不是 AND）。
+   * 跟 communitySearch／addressSearch（各自獨立、AND 疊加）是不同的查詢模式，兩者擇一使用——
+   * 有給 keyword 時，忽略 communitySearch／addressSearch，避免語意衝突。
+   */
+  keyword?: string;
   dateFrom?: string;
   dateTo?: string;
   sortBy?: "created_at_desc" | "transaction_date_desc" | "unit_price_desc" | "total_price_desc";
   page?: number;
   pageSize?: number;
+};
+
+export type LatestSyncStatus = {
+  status: "success" | "partial" | "failed" | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+};
+
+export type AreaDashboardStat = {
+  areaId: string;
+  areaName: string;
+  totalCount: number;
+  todayNewCount: number;
+  last7DaysNewCount: number;
+  latestTransaction: {
+    communityName: string | null;
+    address: string;
+    transactionDate: string | null;
+    totalPrice: number | null;
+    unitPrice: number | null;
+    buildingAreaPing: number | null;
+    roomCount: number | null;
+    hallCount: number | null;
+    bathCount: number | null;
+    floorNumber: number | null;
+    totalFloors: number | null;
+  } | null;
 };
 
 export type OfficialTransactionOverviewStats = {
@@ -182,6 +215,136 @@ export async function getOfficialTransactionOverviewStats(): Promise<OfficialTra
   };
 }
 
+/**
+ * Phase 11｜情報作戰中心首頁只該顯示「真的有在監控」的區域，不是 market_radar_areas 裡
+ * is_active=true 的全部（DB 現況裡還有 4 個當初 seed 但從沒接上任何比對機制的區域，例如
+ * 美術館／中都重劃區，isActive=true 但沒有 bbox/polygon 規則、也沒有任何社區指派給它）。
+ *
+ * 判斷「是否真的有在監控」沿用 Phase 10.8 orchestration 已經在用的同一套定義（不猜、不用
+ * 區域名稱字串判斷）：有至少一條有效 bbox/polygon 規則（地理型），或有至少一個
+ * communities.area_id 指向它（門牌型）。這兩種都沒有的區域，代表目前還沒有任何比對機制
+ * 會把交易分到它底下，永遠是 0 筆，放進首頁只會製造雜訊。
+ */
+export async function getMonitoredAreas(): Promise<{ id: string; name: string }[]> {
+  const allAreas = await listAreas();
+  const activeAreas = allAreas.filter((a) => a.isActive);
+  const supabase = getSupabaseClient();
+  if (!supabase || activeAreas.length === 0) return activeAreas.map((a) => ({ id: a.id, name: a.name }));
+
+  const { data: rules, error: rulesErr } = await supabase.from("market_radar_area_rules").select("area_id, rule_type, bbox, polygon");
+  if (rulesErr) throw rulesErr;
+  const areaIdsWithGeoRule = new Set(
+    (rules as { area_id: string; rule_type: string; bbox: unknown; polygon: unknown }[])
+      .filter((r) => (r.rule_type === "bbox" && r.bbox) || (r.rule_type === "polygon" && r.polygon))
+      .map((r) => r.area_id)
+  );
+
+  const { data: communityRows, error: communityErr } = await supabase.from("communities").select("area_id").not("area_id", "is", null);
+  if (communityErr) throw communityErr;
+  const areaIdsWithCommunities = new Set((communityRows as { area_id: string | null }[]).map((c) => c.area_id).filter((id): id is string => id !== null));
+
+  return activeAreas.filter((a) => areaIdsWithGeoRule.has(a.id) || areaIdsWithCommunities.has(a.id)).map((a) => ({ id: a.id, name: a.name }));
+}
+
+/** Phase 11｜首頁「今日情報」用：最後一次同步的狀態與時間，直接讀 radar_sync_runs 最新一筆。 */
+export async function getLatestSyncStatus(): Promise<LatestSyncStatus> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { status: null, startedAt: null, finishedAt: null };
+
+  const { data, error } = await supabase.from("radar_sync_runs").select("status, started_at, finished_at").order("started_at", { ascending: false }).limit(1);
+  if (error) throw error;
+  const row = (data as { status: string; started_at: string; finished_at: string | null }[] | null)?.[0];
+  if (!row) return { status: null, startedAt: null, finishedAt: null };
+  return { status: row.status as LatestSyncStatus["status"], startedAt: row.started_at, finishedAt: row.finished_at };
+}
+
+/**
+ * Phase 11｜首頁「今日情報」四區今日新增／「四大監控區域」卡片共用的來源：依區域分組統計
+ * 累積筆數、今日新增、近 7 天新增、最近一筆成交（以系統新增時間 created_at 排序，跟
+ * 「今日新增」用同一套時間定義，不是交易日期）。
+ */
+export async function getAreaDashboardStats(areas: { id: string; name: string }[]): Promise<AreaDashboardStat[]> {
+  const supabase = getSupabaseClient();
+  const empty = (): AreaDashboardStat[] =>
+    areas.map((a) => ({ areaId: a.id, areaName: a.name, totalCount: 0, todayNewCount: 0, last7DaysNewCount: 0, latestTransaction: null }));
+  if (!supabase) return empty();
+
+  const areaMatches = await fetchAllAreaMatches();
+  if (areaMatches.length === 0) return empty();
+
+  const txnIdsByArea = new Map<string, string[]>();
+  for (const area of areas) txnIdsByArea.set(area.id, []);
+  for (const m of areaMatches) {
+    if (txnIdsByArea.has(m.areaId)) txnIdsByArea.get(m.areaId)!.push(m.officialTransactionId);
+  }
+
+  const allTxnIds = [...new Set(areaMatches.map((m) => m.officialTransactionId))];
+
+  const txnById = new Map<string, TxnRow>();
+  const CHUNK = 150;
+  for (let i = 0; i < allTxnIds.length; i += CHUNK) {
+    const chunk = allTxnIds.slice(i, i + CHUNK);
+    const { data, error } = await supabase
+      .from("official_transactions")
+      .select("id, address, district, transaction_date, total_price, unit_price, building_area_ping, floor_raw, created_at, raw_data")
+      .in("id", chunk);
+    if (error) throw error;
+    for (const row of data as TxnRow[]) txnById.set(row.id, row);
+  }
+
+  const candidates = await fetchAllCandidates();
+  const communityNameById = await fetchCommunityNames();
+
+  // 台灣是 UTC+8、無日光節約時間，跟 getOfficialTransactionOverviewStats 用同一套「今天」邊界算法。
+  const nowUtc = new Date();
+  const taipeiNow = new Date(nowUtc.getTime() + 8 * 60 * 60 * 1000);
+  const taipeiTodayStr = taipeiNow.toISOString().slice(0, 10);
+  const todayStartUtc = new Date(`${taipeiTodayStr}T00:00:00+08:00`);
+  const sevenDaysAgoUtc = new Date(todayStartUtc.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  return areas.map((area) => {
+    const ids = txnIdsByArea.get(area.id) ?? [];
+    let todayNewCount = 0;
+    let last7DaysNewCount = 0;
+    let latestRow: TxnRow | null = null;
+
+    for (const id of ids) {
+      const row = txnById.get(id);
+      if (!row) continue;
+      const createdAt = new Date(row.created_at);
+      if (createdAt >= todayStartUtc) todayNewCount++;
+      if (createdAt >= sevenDaysAgoUtc) last7DaysNewCount++;
+      // 「最近成交」只從官方原始欄位 raw_data["主要用途"]==="住家用" 的交易裡挑，不含車位
+      // （主要用途空字串）、商業／商辦／土地等特殊交易——不然一筆透天厝土地+建物商業交易
+      // 換算出來的「單價」會是正常住宅的十幾倍，放在首頁會造成行情誤判（Phase 11 實測發現）。
+      // 累積筆數／今日新增／近 7 天新增這幾個統計數字仍然算「監控範圍內全部」，不受這條篩選影響。
+      if (row.raw_data?.["主要用途"] === "住家用" && (!latestRow || createdAt > new Date(latestRow.created_at))) latestRow = row;
+    }
+
+    let latestTransaction: AreaDashboardStat["latestTransaction"] = null;
+    if (latestRow) {
+      const candidate = candidates.get(latestRow.id);
+      const communityId = candidate?.communityId ?? null;
+      const totalFloorsRaw = typeof latestRow.raw_data?.["總樓層數"] === "string" ? (latestRow.raw_data["總樓層數"] as string) : null;
+      latestTransaction = {
+        communityName: communityId ? communityNameById.get(communityId) ?? null : null,
+        address: latestRow.address,
+        transactionDate: latestRow.transaction_date,
+        totalPrice: latestRow.total_price,
+        unitPrice: latestRow.unit_price,
+        buildingAreaPing: latestRow.building_area_ping,
+        roomCount: parseLayoutCount(latestRow.raw_data?.["建物現況格局-房"]),
+        hallCount: parseLayoutCount(latestRow.raw_data?.["建物現況格局-廳"]),
+        bathCount: parseLayoutCount(latestRow.raw_data?.["建物現況格局-衛"]),
+        floorNumber: parseChineseFloorLabel(latestRow.floor_raw),
+        totalFloors: parseChineseFloorLabel(totalFloorsRaw)
+      };
+    }
+
+    return { areaId: area.id, areaName: area.name, totalCount: ids.length, todayNewCount, last7DaysNewCount, latestTransaction };
+  });
+}
+
 export async function listOfficialTransactionsOverview(
   filters: OfficialTransactionOverviewFilters
 ): Promise<{ rows: OfficialTransactionOverviewRow[]; totalCount: number }> {
@@ -220,8 +383,21 @@ export async function listOfficialTransactionsOverview(
     });
   }
 
-  // ---------- scope 3：社區名稱搜尋（比對 communities.name，再回推有這個社區的交易） ----------
-  if (filters.communitySearch && filters.communitySearch.trim()) {
+  // ---------- scope 3：社區名稱搜尋，或 Phase 11 的 keyword 快速查行情（互斥：keyword 存在
+  // 就不套用 communitySearch，語意不同——keyword 是「社區名 OR 地址」單一輸入框，
+  // communitySearch 是既有篩選表單裡「只比對社區名」的獨立欄位，兩者不會同時被呼叫端傳入）。
+  const keyword = filters.keyword?.trim();
+  let keywordCommunityMatchIds: Set<string> | null = null;
+  if (keyword) {
+    const term = keyword.toLowerCase();
+    const matchingCommunityIds = new Set([...communityNameById.entries()].filter(([, name]) => name.toLowerCase().includes(term)).map(([id]) => id));
+    keywordCommunityMatchIds = new Set(
+      scopedTxnIds.filter((id) => {
+        const c = candidates.get(id);
+        return c && c.communityId && matchingCommunityIds.has(c.communityId);
+      })
+    );
+  } else if (filters.communitySearch && filters.communitySearch.trim()) {
     const term = filters.communitySearch.trim().toLowerCase();
     const matchingCommunityIds = new Set([...communityNameById.entries()].filter(([, name]) => name.toLowerCase().includes(term)).map(([id]) => id));
     scopedTxnIds = scopedTxnIds.filter((id) => {
@@ -232,7 +408,7 @@ export async function listOfficialTransactionsOverview(
 
   if (scopedTxnIds.length === 0) return { rows: [], totalCount: 0 };
 
-  // ---------- scope 4：地址搜尋／日期篩選（直接在 official_transactions 查詢層做） ----------
+  // ---------- scope 4：地址搜尋／keyword 地址比對／日期篩選（直接在 official_transactions 查詢層做） ----------
   let query = supabase.from("official_transactions").select("id, address, district, transaction_date, total_price, unit_price, building_area_ping, floor_raw, created_at, raw_data", {
     count: "exact"
   });
@@ -241,7 +417,17 @@ export async function listOfficialTransactionsOverview(
   // 分批查詢再合併，不直接假設一次 .in() 一定夠用。
   const CHUNK = 150;
   let allMatchingIds: string[] = [];
-  if (filters.addressSearch && filters.addressSearch.trim()) {
+  if (keyword) {
+    // keyword 模式：地址比對到「或」社區名稱比對到（keywordCommunityMatchIds）都算命中，OR 合併。
+    const addressMatchIds: string[] = [];
+    for (let i = 0; i < scopedTxnIds.length; i += CHUNK) {
+      const chunk = scopedTxnIds.slice(i, i + CHUNK);
+      const { data, error } = await supabase.from("official_transactions").select("id").in("id", chunk).ilike("address", `%${keyword}%`);
+      if (error) throw error;
+      addressMatchIds.push(...(data as { id: string }[]).map((r) => r.id));
+    }
+    allMatchingIds = [...new Set([...addressMatchIds, ...(keywordCommunityMatchIds ?? [])])];
+  } else if (filters.addressSearch && filters.addressSearch.trim()) {
     // 地址搜尋需要先在每個 chunk 內用 ilike 篩選，因為 .in() + .ilike() 要同時套用在同一批 id 上。
     for (let i = 0; i < scopedTxnIds.length; i += CHUNK) {
       const chunk = scopedTxnIds.slice(i, i + CHUNK);

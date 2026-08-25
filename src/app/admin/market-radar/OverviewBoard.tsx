@@ -9,6 +9,7 @@ import type {
   OfficialTransactionOverviewStats
 } from "@/lib/official-transaction-overview-store";
 import { formatTotalPriceInWan, formatUnitPriceInWan } from "@/lib/line-messaging";
+import { formatBuildingArea, formatFloor, formatLayout } from "@/lib/market-radar-display";
 
 const MATCH_STATUS_LABEL: Record<OfficialTransactionMatchStatus, string> = {
   auto_matched: "已配對社區",
@@ -26,39 +27,27 @@ const MATCH_STATUS_FALLBACK_LABEL: Record<OfficialTransactionMatchStatus, string
   not_matched: "尚未比對"
 };
 
-function formatBuildingArea(value: number | null): string {
-  if (value === null) return "—";
-  return `${value.toLocaleString("zh-TW")} 坪`;
-}
-
-function formatFloor(row: OfficialTransactionOverviewRow): string {
-  if (row.floorNumber !== null && row.totalFloors !== null) return `${row.floorNumber}/${row.totalFloors}`;
-  return row.floorRaw || "—";
-}
-
-/**
- * 房/廳/衛全部缺值，或官方原始資料三個都是 0（代表這筆本來就不是「有房間隔間」的一般住宅格局，
- * 例如車位、大面積商用空間整棟交易），都不算「有格局資料」，顯示 —，不要顯示 0房0廳0衛。
- */
-function formatLayout(row: OfficialTransactionOverviewRow): string {
-  const { roomCount, hallCount, bathCount } = row;
-  if (roomCount === null || hallCount === null || bathCount === null) return "—";
-  if (roomCount === 0 && hallCount === 0 && bathCount === 0) return "—";
-  return `${roomCount}房${hallCount}廳${bathCount}衛`;
-}
-
 const PAGE_SIZE = 50;
 
 export default function OverviewBoard({
   areas,
   stats,
   initialRows,
-  initialTotalCount
+  initialTotalCount,
+  initialFilters
 }: {
   areas: MarketRadarArea[];
   stats: OfficialTransactionOverviewStats;
   initialRows: OfficialTransactionOverviewRow[];
   initialTotalCount: number;
+  /** Phase 11｜從情報作戰中心（區域卡／待處理／快速查行情）帶篩選條件連過來時的初始值。 */
+  initialFilters?: {
+    areaId?: string;
+    matchStatus?: string;
+    communitySearch?: string;
+    addressSearch?: string;
+    sortBy?: string;
+  };
 }) {
   const [rows, setRows] = useState(initialRows);
   const [totalCount, setTotalCount] = useState(initialTotalCount);
@@ -66,26 +55,33 @@ export default function OverviewBoard({
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
 
-  const [areaId, setAreaId] = useState("");
-  const [matchStatus, setMatchStatus] = useState("");
-  const [communitySearch, setCommunitySearch] = useState("");
-  const [addressSearch, setAddressSearch] = useState("");
+  const [areaId, setAreaId] = useState(initialFilters?.areaId ?? "");
+  const [matchStatus, setMatchStatus] = useState(initialFilters?.matchStatus ?? "");
+  const [communitySearch, setCommunitySearch] = useState(initialFilters?.communitySearch ?? "");
+  const [addressSearch, setAddressSearch] = useState(initialFilters?.addressSearch ?? "");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [sortBy, setSortBy] = useState("created_at_desc");
+  const [sortBy, setSortBy] = useState(initialFilters?.sortBy ?? "created_at_desc");
 
-  async function runQuery(targetPage: number) {
+  // targetFilters 可覆寫個別欄位，用於「清除篩選」這種需要在 React state 尚未更新前、
+  // 就立刻用「清空後的值」發查詢的情境（state setter 是非同步的，同一個 function 裡讀
+  // areaId 等變數還會是舊值，所以清除篩選要明確傳入空值，不能依賴 state）。
+  async function runQuery(
+    targetPage: number,
+    targetFilters?: { areaId: string; matchStatus: string; communitySearch: string; addressSearch: string; dateFrom: string; dateTo: string; sortBy: string }
+  ) {
+    const f = targetFilters ?? { areaId, matchStatus, communitySearch, addressSearch, dateFrom, dateTo, sortBy };
     setLoading(true);
     setError("");
     try {
       const params = new URLSearchParams();
-      if (areaId) params.set("areaId", areaId);
-      if (matchStatus) params.set("matchStatus", matchStatus);
-      if (communitySearch.trim()) params.set("communitySearch", communitySearch.trim());
-      if (addressSearch.trim()) params.set("addressSearch", addressSearch.trim());
-      if (dateFrom) params.set("dateFrom", dateFrom);
-      if (dateTo) params.set("dateTo", dateTo);
-      params.set("sortBy", sortBy);
+      if (f.areaId) params.set("areaId", f.areaId);
+      if (f.matchStatus) params.set("matchStatus", f.matchStatus);
+      if (f.communitySearch.trim()) params.set("communitySearch", f.communitySearch.trim());
+      if (f.addressSearch.trim()) params.set("addressSearch", f.addressSearch.trim());
+      if (f.dateFrom) params.set("dateFrom", f.dateFrom);
+      if (f.dateTo) params.set("dateTo", f.dateTo);
+      params.set("sortBy", f.sortBy);
       params.set("page", String(targetPage));
       params.set("pageSize", String(PAGE_SIZE));
 
@@ -115,9 +111,7 @@ export default function OverviewBoard({
     setDateFrom("");
     setDateTo("");
     setSortBy("created_at_desc");
-    setRows(initialRows);
-    setTotalCount(initialTotalCount);
-    setPage(1);
+    runQuery(1, { areaId: "", matchStatus: "", communitySearch: "", addressSearch: "", dateFrom: "", dateTo: "", sortBy: "created_at_desc" });
   }
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -126,10 +120,13 @@ export default function OverviewBoard({
     <main className="admin-shell">
       <div className="admin-heading">
         <div>
-          <h1>房市情報雷達總覽</h1>
-          <p>目前監控區域內、命中官方實價登錄的成交資料，社區配對狀態沿用 Community Matching 既有規則，不猜測。</p>
+          <h1>成交資料庫</h1>
+          <p>目前監控區域內、命中官方實價登錄的完整成交資料，社區配對狀態沿用 Community Matching 既有規則，不猜測。</p>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
+          <Link className="button-secondary" href="/admin/market-radar">
+            回情報作戰中心
+          </Link>
           <Link className="button-secondary" href="/admin/market-radar/areas">
             區域管理
           </Link>

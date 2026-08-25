@@ -452,3 +452,496 @@
   white-space: normal;
   min-width: 220px;
 }
+
+/* ==========================================================================
+   Phase 11｜情報作戰中心（Market Radar Dashboard）－ 第三版：資訊層級調整
+
+   核心順序：Radar Status → 四區行情比較 → 最新成交／需要我處理 → 快速查行情。
+   視覺方向：黑金品牌色（--navy-950／--gold-500，見 globals.css），留白建立層級，
+   不是每個區塊都框起來、不是每個數字都一樣大。
+   ========================================================================== */
+
+.rd-shell {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.rd-link {
+  color: var(--gold-400);
+  font-size: 13px;
+  text-decoration: none;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.rd-link:hover {
+  text-decoration: underline;
+}
+
+.rd-empty {
+  color: #7f7f86;
+  font-size: 13px;
+}
+
+.rd-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.rd-section-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #d9d9dd;
+}
+
+.rd-section-hint {
+  font-size: 12px;
+  color: #6b6b70;
+}
+
+/* ---------- 1. Radar Status：壓縮高度的狀態列 ---------- */
+
+.rd-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-bottom: 18px;
+  margin-bottom: 32px;
+  border-bottom: 1px solid var(--navy-800);
+}
+
+.rd-status-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.rd-status-eyebrow {
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: #7f7f86;
+  text-transform: uppercase;
+}
+
+.rd-status-today {
+  font-size: 15px;
+  color: #f2f0ea;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rd-status-today strong {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--gold-400);
+  margin: 0 2px;
+}
+
+.rd-status-today--zero {
+  color: #6b6b70;
+}
+
+.rd-status-today-areas {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rd-status-chip {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--navy-950);
+  background: var(--gold-400);
+  border-radius: 999px;
+  padding: 3px 10px;
+  text-decoration: none;
+}
+
+.rd-status-chip:hover {
+  background: var(--gold-300);
+}
+
+.rd-status-side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #7f7f86;
+}
+
+.rd-sync-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.rd-sync-dot--success {
+  background: #6fbf8b;
+}
+
+.rd-sync-dot--partial {
+  background: var(--gold-400);
+}
+
+.rd-sync-dot--failed {
+  background: #d97a7a;
+}
+
+.rd-sync-dot--unknown {
+  background: #4a4a4f;
+}
+
+/* ---------- 2. 四區行情比較：首頁主要視覺 ---------- */
+
+.rd-compare {
+  margin-bottom: 40px;
+}
+
+.rd-compare-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.rd-compare-row {
+  display: grid;
+  grid-template-columns: 84px 1fr 44px auto;
+  align-items: center;
+  gap: 16px;
+  text-decoration: none;
+  color: inherit;
+  padding: 4px 0;
+}
+
+.rd-compare-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: #f2f0ea;
+}
+
+.rd-compare-bar-track {
+  display: block;
+  height: 20px;
+  background: var(--navy-900);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.rd-compare-bar-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-600), var(--gold-400));
+  border-radius: 4px;
+  transition: width 0.2s ease;
+}
+
+.rd-compare-row:hover .rd-compare-bar-fill {
+  filter: brightness(1.1);
+}
+
+.rd-compare-count {
+  font-size: 20px;
+  font-weight: 800;
+  color: #f2f0ea;
+  text-align: right;
+}
+
+.rd-compare-delta {
+  font-size: 12px;
+  color: #7f7f86;
+  white-space: nowrap;
+}
+
+.rd-compare-snapshots {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--navy-800);
+}
+
+.rd-snapshot-name {
+  font-size: 12px;
+  color: #7f7f86;
+  margin-bottom: 4px;
+}
+
+.rd-snapshot-latest-name {
+  font-size: 13px;
+  color: #d9d9dd;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rd-snapshot-latest-price {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--gold-400);
+  margin-top: 2px;
+}
+
+.rd-snapshot-empty {
+  font-size: 12px;
+  color: #55555b;
+}
+
+/* ---------- 左右分欄：最新成交 × 需要我處理 ---------- */
+
+.rd-columns {
+  display: grid;
+  grid-template-columns: 2.4fr 1fr;
+  gap: 48px;
+  align-items: start;
+  margin-bottom: 40px;
+}
+
+/* ---------- 情報卡（最新成交／搜尋結果共用） ---------- */
+
+.rd-txn-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.rd-txn {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--navy-800);
+}
+
+.rd-txn-list .rd-txn:first-child {
+  padding-top: 0;
+}
+
+.rd-txn-list .rd-txn:last-child {
+  border-bottom: none;
+}
+
+.rd-tool-results .rd-txn {
+  border-bottom: none;
+  padding: 0;
+}
+
+.rd-txn--compact .rd-txn-name {
+  font-size: 16px;
+}
+
+.rd-txn-headline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rd-txn-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #f2f0ea;
+}
+
+.rd-txn-tags {
+  display: flex;
+  gap: 6px;
+}
+
+.rd-tag {
+  font-size: 11px;
+  color: #9a9a9f;
+  border: 1px solid var(--navy-800);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+.rd-txn-meta {
+  margin-top: 3px;
+  color: #6b6b70;
+  font-size: 12px;
+}
+
+.rd-txn-price {
+  margin-top: 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.rd-txn-price-total {
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--gold-400);
+}
+
+.rd-txn-price-sep {
+  color: #4a4a4f;
+}
+
+.rd-txn-price-unit {
+  font-size: 14px;
+  color: #b9b9bd;
+}
+
+.rd-facts {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #9a9a9f;
+}
+
+.rd-txn-address {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #55555b;
+}
+
+/* ---------- 需要我處理：提高存在感 ---------- */
+
+.rd-attention {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: linear-gradient(160deg, var(--navy-900) 0%, #201a10 100%);
+  border: 1px solid #3a2f18;
+  border-radius: 10px;
+  padding: 22px;
+}
+
+.rd-attention:hover {
+  border-color: var(--gold-500);
+}
+
+.rd-attention-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #c9b078;
+  margin-bottom: 14px;
+}
+
+.rd-attention-icon {
+  color: var(--gold-400);
+  font-size: 11px;
+}
+
+.rd-attention-count {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--gold-400);
+  line-height: 1;
+}
+
+.rd-attention-label {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #b9b9bd;
+}
+
+.rd-attention-cta {
+  margin-top: 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold-400);
+}
+
+/* ---------- 4. 快速查行情：獨立工具區 ---------- */
+
+.rd-tool {
+  padding: 28px 28px 32px;
+  background: var(--navy-900);
+  border-radius: 10px;
+}
+
+.rd-tool-form {
+  display: flex;
+  gap: 10px;
+}
+
+.rd-tool-input {
+  flex: 1;
+  background: var(--navy-950);
+  border: 1px solid var(--navy-800);
+  color: #f2f0ea;
+  font-size: 16px;
+  padding: 14px 16px;
+  border-radius: 6px;
+}
+
+.rd-tool-input::placeholder {
+  color: #55555b;
+}
+
+.rd-tool-input:focus {
+  outline: none;
+  border-color: var(--gold-500);
+}
+
+.rd-tool-button {
+  background: var(--gold-500);
+  color: var(--navy-950);
+  border: none;
+  border-radius: 6px;
+  padding: 0 28px;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.rd-tool-button:hover {
+  background: var(--gold-400);
+}
+
+.rd-tool-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.rd-tool-results {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.rd-tool-results .rd-link {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+  .rd-columns {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .rd-compare-row {
+    grid-template-columns: 68px 1fr 36px;
+  }
+  .rd-compare-delta {
+    display: none;
+  }
+  .rd-compare-snapshots {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px 16px;
+  }
+  .rd-status {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .rd-tool {
+    padding: 20px;
+  }
+  .rd-tool-form {
+    flex-direction: column;
+  }
+}

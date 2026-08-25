@@ -28,6 +28,7 @@ export async function GET(request: Request) {
     matchStatus: matchStatusParam && VALID_MATCH_STATUS.includes(matchStatusParam as OfficialTransactionMatchStatus) ? (matchStatusParam as OfficialTransactionMatchStatus) : undefined,
     communitySearch: searchParams.get("communitySearch") || undefined,
     addressSearch: searchParams.get("addressSearch") || undefined,
+    keyword: searchParams.get("keyword") || undefined,
     dateFrom: searchParams.get("dateFrom") || undefined,
     dateTo: searchParams.get("dateTo") || undefined,
     sortBy:

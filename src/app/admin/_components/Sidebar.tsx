@@ -8,7 +8,10 @@ const NAV_ITEMS = [
   { href: "/admin/sellers", label: "屋主案件", icon: "🏠" },
   { href: "/admin/ig-growth", label: "IG 10K", icon: "📈" },
   { href: "/admin/stats", label: "數據", icon: "📊" },
-  { href: "/admin/market-radar", label: "房市雷達", icon: "📡", activePrefix: "/admin/market-radar" }
+  // 房市雷達／總覽用 exact 比對，避免 /admin/market-radar/transactions 等子頁被 startsWith
+  // 誤判成兩個項目同時 active（子頁各自的入口都在頁面內的標題連結，不需要 Sidebar 額外標記）。
+  { href: "/admin/market-radar", label: "房市雷達／總覽", icon: "📡", exact: true },
+  { href: "/admin/market-radar/transactions", label: "成交資料庫", icon: "🗂️" }
 ];
 
 export default function Sidebar() {
@@ -26,7 +29,7 @@ export default function Sidebar() {
           <Link
             key={item.href}
             className="admin-sidebar__link"
-            data-active={pathname.startsWith(item.activePrefix ?? item.href)}
+            data-active={"exact" in item && item.exact ? pathname === item.href : pathname.startsWith(item.href)}
             href={item.href}
           >
             <span aria-hidden="true" className="admin-sidebar__icon">{item.icon}</span>
