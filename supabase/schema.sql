@@ -1046,3 +1046,49 @@ create table if not exists market_radar_notification_settings (
 
 alter table market_radar_notification_settings enable row level security;
 grant select, insert, update, delete on public.market_radar_notification_settings to service_role;
+
+-- ==========================================================================
+-- 屋主回報系統：主要平台曝光追蹤（591／5168／樂屋網／官網）
+-- 四個平台固定都在「主要平台曝光」這個業務分類裡，但技術上的追蹤能力不同
+-- （自動追蹤／部分追蹤／人工紀錄，這個能力標籤寫死在程式碼常數，不是欄位）。
+-- 每個案件每個平台只有一組追蹤設定（listing_url + started_at），設定一次即可，
+-- 不用每週重填；每天的檢查結果各存一筆歷史紀錄到 seller_exposure_checks，
+-- 不覆蓋舊資料，才能算得出「本週新增多少」。
+-- ==========================================================================
+
+create table if not exists seller_exposure_links (
+  id uuid primary key default gen_random_uuid(),
+  seller_id uuid not null references sellers(id) on delete cascade,
+  platform text not null check (platform in ('website', 'e591', 'e5168', 'leyou')),
+  -- 樂屋網（人工紀錄）可以只填開始刊登日期＋備註，不強制要有網址；
+  -- 591/5168/官網（自動／部分追蹤）一定要有網址才有得檢查，用下面的 check 擋。
+  listing_url text,
+  started_at date not null,
+  current_status text not null default 'unverifiable' check (current_status in ('normal', 'inactive', 'unverifiable')),
+  current_views int,
+  last_checked_at timestamptz,
+  error_reason text not null default '',
+  manual_note text not null default '', -- Maggie 自己填的操作記錄（例如「更新首圖」），跟 Seller Report 的自動摘要句是兩回事
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (seller_id, platform),
+  check (platform = 'leyou' or listing_url is not null)
+);
+
+create table if not exists seller_exposure_checks (
+  id uuid primary key default gen_random_uuid(),
+  exposure_link_id uuid not null references seller_exposure_links(id) on delete cascade,
+  checked_at timestamptz not null default now(),
+  status text not null check (status in ('normal', 'inactive', 'unverifiable')),
+  views int,
+  error_reason text not null default ''
+);
+
+create index if not exists seller_exposure_links_seller_idx on seller_exposure_links (seller_id);
+create index if not exists seller_exposure_checks_link_time_idx
+  on seller_exposure_checks (exposure_link_id, checked_at desc);
+
+alter table seller_exposure_links enable row level security;
+alter table seller_exposure_checks enable row level security;
+grant select, insert, update, delete on public.seller_exposure_links to service_role;
+grant select, insert, update, delete on public.seller_exposure_checks to service_role;

@@ -27,7 +27,81 @@ export const EXPOSURE_CHANNELS: { key: ExposureChannelKey; label: string }[] = [
   { key: "other", label: "其他曝光備註" }
 ];
 
-export type ExposureEntry = { done: boolean; note: string };
+/**
+ * 「主要平台曝光」固定四個，跟「這個平台技術上抓不抓得到資料」無關——
+ * 業務分類（是不是主要銷售平台）跟技術能力（追蹤能力）是兩件事，故意分開兩個常數維護。
+ * 這四個永遠一起顯示，不會因為某平台目前技術上只能人工紀錄就被移到人工曝光區。
+ */
+export type PrimaryExposurePlatform = "e591" | "e5168" | "leyou" | "website";
+
+export const PRIMARY_EXPOSURE_PLATFORMS: { key: PrimaryExposurePlatform; label: string }[] = [
+  { key: "e591", label: "591" },
+  { key: "e5168", label: "5168" },
+  { key: "leyou", label: "樂屋網" },
+  { key: "website", label: "官網" }
+];
+
+/** 追蹤能力是平台固有屬性，寫死在這裡，不是資料庫欄位、不是動態計算出來的狀態。 */
+export type ExposureTrackingCapability = "auto" | "partial" | "manual";
+
+export const EXPOSURE_TRACKING_CAPABILITY: Record<PrimaryExposurePlatform, ExposureTrackingCapability> = {
+  e591: "auto", // 能驗證有效性，也讀得到瀏覽數
+  e5168: "partial", // 能驗證還有沒有刊登，但平台沒有公開瀏覽數
+  website: "partial", // 同上（永義房屋官網物件頁）
+  leyou: "manual" // 目前技術上進不去（實測回 403），完全人工紀錄，cron 不會嘗試抓取
+};
+
+/** 「人工曝光」的其餘 7 個管道（樂屋網已經是主要平台曝光的一員，不在這裡）。 */
+export const MANUAL_EXPOSURE_CHANNELS = EXPOSURE_CHANNELS.filter(
+  (c) => !PRIMARY_EXPOSURE_PLATFORMS.some((p) => p.key === c.key)
+);
+
+export const EXPOSURE_CAPABILITY_LABEL: Record<ExposureTrackingCapability, string> = {
+  auto: "自動追蹤",
+  partial: "部分追蹤",
+  manual: "人工紀錄"
+};
+
+export const EXPOSURE_AUTO_STATUS_LABEL: Record<ExposureAutoSnapshot["status"], string> = {
+  normal: "🟢 正常曝光",
+  inactive: "🔴 原刊登網址已失效",
+  unverifiable: "⚪ 無法自動驗證",
+  attention: "🟡 需要注意"
+};
+
+/** 自動產生的週報摘要句——只出現在 Seller Report 的 note 欄位，不會預塞進「曝光管理」的人工補充說明。 */
+export function describeExposureAutoSnapshot(platformLabel: string, snapshot: ExposureAutoSnapshot): string {
+  if (snapshot.status === "inactive") {
+    return `${platformLabel}原刊登網址已失效，請確認是否下架、換網址或重新刊登。`;
+  }
+  if (snapshot.status === "unverifiable") {
+    return `本次無法自動驗證 ${platformLabel} 的刊登狀態，請自行確認。`;
+  }
+  if (snapshot.cumulativeViews === null) {
+    return `本週 ${platformLabel} 持續曝光中，已刊登 ${snapshot.activeDays} 天（平台未提供瀏覽數）。`;
+  }
+  const deltaText = snapshot.weeklyViewDelta !== null ? `，本週新增 ${snapshot.weeklyViewDelta} 次瀏覽` : "";
+  const attentionText =
+    snapshot.status === "attention" ? "，瀏覽數已一段時間沒有增加，可能需要調整曝光策略" : "";
+  return `本週 ${platformLabel} 刊登持續曝光，目前累積瀏覽 ${snapshot.cumulativeViews} 次${deltaText}${attentionText}。`;
+}
+
+export type ExposureAutoSnapshot = {
+  /** attention 只在「產生週報快照」當下計算（連續 14 天瀏覽數沒變化），不是 checks 表裡存的值 */
+  status: "normal" | "inactive" | "unverifiable" | "attention";
+  activeDays: number;
+  cumulativeViews: number | null;
+  weeklyViewDelta: number | null;
+  lastCheckedAt: string;
+};
+
+export type ExposureEntry = {
+  done: boolean;
+  note: string; // 人工補充說明／備註，維持原意，不會被自動摘要覆蓋
+  /** 只有主要平台曝光四個管道、且案件已在「曝光管理」設定過的情況下才會有值；建立週報當下寫入，之後不會被 cron 追新資料回頭改掉。 */
+  auto?: ExposureAutoSnapshot;
+};
+
 export type Exposure = Partial<Record<ExposureChannelKey, ExposureEntry>>;
 
 export type Competitor = {

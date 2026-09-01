@@ -304,3 +304,228 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* --- 曝光管理 / 主要平台曝光：共用的能力標籤與卡片樣式 --- */
+
+.cap-tag {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #c9b3f0;
+  background: #221d33;
+  border: 1px solid #4a3d63;
+  border-radius: 4px;
+  padding: 2px 7px;
+  letter-spacing: 0.02em;
+}
+
+.exposure-links-hint {
+  margin: -6px 0 14px;
+  color: #9fb0c7;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.exposure-links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.exposure-link-card {
+  border: 1px solid #243955;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.exposure-link-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.exposure-link-card-top strong {
+  font-size: 15px;
+}
+
+.exposure-link-card .field label {
+  color: #9fb0c7;
+  font-size: 12px;
+}
+
+.exposure-link-card .field input {
+  width: 100%;
+  min-height: 36px;
+  background: #0b1626;
+  border: 1px solid #2b405e;
+  border-radius: 5px;
+  color: #f2f0ea;
+  padding: 7px 9px;
+  font-size: 13px;
+}
+
+.exposure-link-status {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  padding: 8px 0;
+  border-top: 1px dashed #243955;
+}
+
+.exposure-link-status .checked-at {
+  color: #6d7f98;
+  font-size: 11px;
+}
+
+/* --- 「主要平台曝光」（591/5168/樂屋網/官網 固定四卡） --- */
+
+.primary-exposure-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .primary-exposure-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+  .primary-exposure-grid { grid-template-columns: 1fr; }
+}
+
+.primary-exposure-card {
+  border: 1px solid #243955;
+  border-radius: 8px;
+  padding: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.primary-exposure-card.is-unset {
+  border-style: dashed;
+  color: #6d7f98;
+  font-size: 12.5px;
+  justify-content: center;
+}
+
+.primary-exposure-card.is-unset a {
+  color: var(--gold-400);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.primary-exposure-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.primary-exposure-top strong {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.primary-exposure-days {
+  font-size: 12px;
+  color: #9fb0c7;
+}
+
+.primary-exposure-metrics {
+  display: flex;
+  gap: 14px;
+  padding: 8px 0;
+  border-top: 1px dashed #243955;
+  border-bottom: 1px dashed #243955;
+}
+
+.primary-exposure-metrics .num {
+  display: block;
+  font-size: 19px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #f2f0ea;
+}
+
+.primary-exposure-metrics .num.delta { color: var(--gold-400); }
+
+.primary-exposure-metrics .label {
+  font-size: 10.5px;
+  color: #6d7f98;
+}
+
+.primary-exposure-nodata {
+  padding: 8px 0;
+  border-top: 1px dashed #243955;
+  border-bottom: 1px dashed #243955;
+  font-size: 12px;
+  color: #6d7f98;
+  font-style: italic;
+}
+
+.primary-exposure-checked {
+  font-size: 10.5px;
+  color: #6d7f98;
+  font-variant-numeric: tabular-nums;
+}
+
+.primary-exposure-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-top: 1px dashed #243955;
+  border-bottom: 1px dashed #243955;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #c3ccda;
+}
+
+.primary-exposure-toggle input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--gold-500);
+}
+
+.primary-exposure-card .field label {
+  font-size: 10.5px;
+  color: #6d7f98;
+}
+
+.primary-exposure-card .field textarea,
+.primary-exposure-card .field input[type="text"] {
+  width: 100%;
+  background: #0b1626;
+  border: 1px solid #2b405e;
+  border-radius: 5px;
+  color: #f2f0ea;
+  padding: 7px 9px;
+  font-size: 12.5px;
+  font-family: inherit;
+}
+
+.primary-exposure-card .field textarea {
+  min-height: 64px;
+  resize: vertical;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 2px 9px 2px 7px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pill--good { color: #9be1bd; border: 1px solid #2f6f50; background: #16281f; }
+.pill--warn { color: #ffd98b; border: 1px solid #896728; background: #342914; }
+.pill--bad { color: #ffb2bb; border: 1px solid #7b3b43; background: #2c1418; }
+.pill--mute { color: #c3ccda; border: 1px solid #3a4a63; background: rgba(255, 255, 255, 0.03); }

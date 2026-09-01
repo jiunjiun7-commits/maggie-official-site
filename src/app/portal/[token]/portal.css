@@ -162,6 +162,48 @@
   color: var(--ink-soft);
 }
 
+.portal-primary-exposure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.portal-primary-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.portal-primary-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.portal-primary-card strong {
+  font-size: 14px;
+}
+
+.portal-primary-card span {
+  color: var(--ink-soft);
+}
+
+.portal-primary-days {
+  font-size: 12px;
+}
+
+.portal-secondary-heading {
+  margin-top: 18px !important;
+  font-size: 13px !important;
+  color: var(--ink-soft);
+}
+
 .portal-stat-row {
   display: flex;
   flex-wrap: wrap;

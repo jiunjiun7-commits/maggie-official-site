@@ -3,7 +3,9 @@
 import { useState } from "react";
 import type { Seller, SellerStatus } from "@/lib/seller-store";
 import type { SellerReport } from "@/lib/seller-report-store";
+import type { ExposureLink } from "@/lib/seller-exposure-store";
 import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
+import ExposureLinksPanel from "./ExposureLinksPanel";
 
 const STATUS_LABEL: Record<SellerStatus, string> = {
   active: "服務中",
@@ -18,11 +20,13 @@ function formatDate(value: string) {
 export default function SellerDetailBoard({
   initialSeller,
   initialReports,
-  initialHasToken
+  initialHasToken,
+  initialExposureLinks
 }: {
   initialSeller: Seller;
   initialReports: SellerReport[];
   initialHasToken: boolean;
+  initialExposureLinks: ExposureLink[];
 }) {
   const [seller, setSeller] = useState(initialSeller);
   const [reports] = useState(initialReports);
@@ -135,6 +139,8 @@ export default function SellerDetailBoard({
               <div className="empty-state">還沒有任何週報，按右上角「＋ 新增週報」建立第一筆。</div>
             )}
           </section>
+
+          <ExposureLinksPanel initialLinks={initialExposureLinks} sellerId={seller.id} />
         </div>
 
         <div>

@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import Sidebar from "@/app/admin/_components/Sidebar";
 import { getSeller } from "@/lib/seller-store";
+import { EXPOSURE_TRACKING_CAPABILITY, PRIMARY_EXPOSURE_PLATFORMS, type ExposureAutoSnapshot, type PrimaryExposurePlatform } from "@/lib/seller-report-store";
+import { buildExposureAutoSnapshot, listExposureLinks } from "@/lib/seller-exposure-store";
 import ReportForm from "../ReportForm";
 import "../../../../login/login.css";
 import "../../../sellers.css";
@@ -11,6 +13,19 @@ export default async function NewSellerReportPage({ params }: { params: Promise<
   const { id } = await params;
   const seller = await getSeller(id);
   if (!seller) notFound();
+
+  const exposureLinks = await listExposureLinks(id);
+
+  // 建立新週報當下用「今天」當週期末算一次快照，凍結進表單初始值；之後改期間也不會重算，
+  // 跟現有 Seller Report「一旦建立就固定」的精神一致。
+  const today = new Date().toISOString().slice(0, 10);
+  const autoSnapshots: Partial<Record<PrimaryExposurePlatform, ExposureAutoSnapshot>> = {};
+  for (const platform of PRIMARY_EXPOSURE_PLATFORMS) {
+    if (EXPOSURE_TRACKING_CAPABILITY[platform.key] === "manual") continue;
+    const link = exposureLinks.find((l) => l.platform === platform.key);
+    if (!link) continue;
+    autoSnapshots[platform.key] = await buildExposureAutoSnapshot(link, today);
+  }
 
   return (
     <div className="admin-page">
@@ -24,7 +39,7 @@ export default async function NewSellerReportPage({ params }: { params: Promise<
             </p>
           </div>
         </div>
-        <ReportForm sellerId={seller.id} />
+        <ReportForm autoSnapshots={autoSnapshots} exposureLinks={exposureLinks} sellerId={seller.id} />
       </main>
     </div>
   );

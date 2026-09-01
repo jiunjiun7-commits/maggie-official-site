@@ -1,6 +1,13 @@
 import { resolveSellerIdByToken } from "@/lib/seller-portal";
 import { getSellerPublicInfo } from "@/lib/seller-store";
-import { EXPOSURE_CHANNELS, listSellerReportsForPortal, type SellerReport } from "@/lib/seller-report-store";
+import {
+  EXPOSURE_AUTO_STATUS_LABEL,
+  EXPOSURE_TRACKING_CAPABILITY,
+  MANUAL_EXPOSURE_CHANNELS,
+  PRIMARY_EXPOSURE_PLATFORMS,
+  listSellerReportsForPortal,
+  type SellerReport
+} from "@/lib/seller-report-store";
 import "./portal.css";
 
 export const dynamic = "force-dynamic";
@@ -97,15 +104,54 @@ export default async function SellerPortalPage({ params }: { params: Promise<{ t
 }
 
 function ReportBody({ report }: { report: SellerReport }) {
-  const exposureDone = EXPOSURE_CHANNELS.filter((c) => report.exposure[c.key]?.done);
+  const manualExposureDone = MANUAL_EXPOSURE_CHANNELS.filter((c) => report.exposure[c.key]?.done);
 
   return (
     <div className="portal-report-body">
       <div className="portal-block">
-        <h3>本週曝光</h3>
-        {exposureDone.length ? (
+        <h3>主要平台曝光</h3>
+        <div className="portal-primary-exposure-grid">
+          {PRIMARY_EXPOSURE_PLATFORMS.map((platform) => {
+            const entry = report.exposure[platform.key];
+            const capability = EXPOSURE_TRACKING_CAPABILITY[platform.key];
+            const auto = entry?.auto;
+
+            if (capability === "manual") {
+              if (!entry?.done) return null;
+              return (
+                <div className="portal-primary-card" key={platform.key}>
+                  <strong>{platform.label}</strong>
+                  {entry.note ? <span>{entry.note}</span> : null}
+                </div>
+              );
+            }
+
+            if (!auto) return null;
+            return (
+              <div className="portal-primary-card" key={platform.key}>
+                <div className="portal-primary-card-top">
+                  <strong>{platform.label}</strong>
+                  <span>{EXPOSURE_AUTO_STATUS_LABEL[auto.status]}</span>
+                </div>
+                <span className="portal-primary-days">已持續刊登 {auto.activeDays} 天</span>
+                {auto.cumulativeViews !== null ? (
+                  <span>
+                    累積瀏覽 {auto.cumulativeViews}
+                    {auto.weeklyViewDelta !== null ? `｜本週新增 ${auto.weeklyViewDelta}` : ""}
+                  </span>
+                ) : (
+                  <span>瀏覽數：平台無法自動取得</span>
+                )}
+                {entry.note ? <span>{entry.note}</span> : null}
+              </div>
+            );
+          })}
+        </div>
+
+        <h3 className="portal-secondary-heading">其他曝光</h3>
+        {manualExposureDone.length ? (
           <ul className="portal-exposure-list">
-            {exposureDone.map((c) => (
+            {manualExposureDone.map((c) => (
               <li key={c.key}>
                 <strong>{c.label}</strong>
                 {report.exposure[c.key]?.note ? <span>{report.exposure[c.key]?.note}</span> : null}
@@ -113,7 +159,7 @@ function ReportBody({ report }: { report: SellerReport }) {
             ))}
           </ul>
         ) : (
-          <p className="portal-muted">本週尚無曝光紀錄。</p>
+          <p className="portal-muted">本週尚無其他曝光紀錄。</p>
         )}
       </div>
 

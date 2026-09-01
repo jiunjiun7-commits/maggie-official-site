@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Sidebar from "@/app/admin/_components/Sidebar";
 import { getSeller } from "@/lib/seller-store";
 import { getSellerReport } from "@/lib/seller-report-store";
+import { listExposureLinks } from "@/lib/seller-exposure-store";
 import ReportForm from "../ReportForm";
 import "../../../../login/login.css";
 import "../../../sellers.css";
@@ -14,7 +15,11 @@ export default async function EditSellerReportPage({
   params: Promise<{ id: string; reportId: string }>;
 }) {
   const { id, reportId } = await params;
-  const [seller, report] = await Promise.all([getSeller(id), getSellerReport(id, reportId)]);
+  const [seller, report, exposureLinks] = await Promise.all([
+    getSeller(id),
+    getSellerReport(id, reportId),
+    listExposureLinks(id)
+  ]);
   if (!seller || !report) notFound();
 
   return (
@@ -29,7 +34,7 @@ export default async function EditSellerReportPage({
             </p>
           </div>
         </div>
-        <ReportForm initialReport={report} sellerId={seller.id} />
+        <ReportForm exposureLinks={exposureLinks} initialReport={report} sellerId={seller.id} />
       </main>
     </div>
   );

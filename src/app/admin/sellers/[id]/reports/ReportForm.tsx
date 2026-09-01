@@ -2,30 +2,77 @@
 
 import { useState } from "react";
 import {
+  describeExposureAutoSnapshot,
+  EXPOSURE_AUTO_STATUS_LABEL,
+  EXPOSURE_CAPABILITY_LABEL,
   EXPOSURE_CHANNELS,
+  EXPOSURE_TRACKING_CAPABILITY,
+  MANUAL_EXPOSURE_CHANNELS,
+  PRIMARY_EXPOSURE_PLATFORMS,
   STRATEGY_CHECKLIST_OPTIONS,
   type Competitor,
   type Exposure,
+  type ExposureAutoSnapshot,
   type NextWeekStrategy,
+  type PrimaryExposurePlatform,
   type SellerReport
 } from "@/lib/seller-report-store";
+import type { ExposureLink } from "@/lib/seller-exposure-store";
 import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
 
 function emptyExposure(): Exposure {
   return Object.fromEntries(EXPOSURE_CHANNELS.map((c) => [c.key, { done: false, note: "" }])) as Exposure;
 }
 
+function formatCheckedAt(value: string) {
+  if (!value) return "尚未檢查";
+  return new Date(value).toLocaleString("zh-TW", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function statusTone(status: ExposureAutoSnapshot["status"] | undefined) {
+  if (status === "normal") return "good";
+  if (status === "inactive") return "bad";
+  if (status === "attention") return "warn";
+  return "mute";
+}
+
 export default function ReportForm({
   sellerId,
-  initialReport
+  initialReport,
+  exposureLinks,
+  autoSnapshots
 }: {
   sellerId: string;
   initialReport?: SellerReport;
+  /** 案件在「曝光管理」設定的四個平台連結，用來顯示「已持續刊登 N 天」跟目前狀態。 */
+  exposureLinks: ExposureLink[];
+  /**
+   * 只有新增週報時才會傳入——用「報告週期」當下算出的追蹤快照，寫進 exposure.auto 之後就固定，
+   * 不會因為之後 cron 又抓到新數字而回頭改到已建立的週報。編輯既有週報時不傳，
+   * 直接沿用 initialReport.exposure 裡已經存好的 auto 快照。
+   */
+  autoSnapshots?: Partial<Record<PrimaryExposurePlatform, ExposureAutoSnapshot>>;
 }) {
   const [reportDate, setReportDate] = useState(initialReport?.reportDate ?? "");
   const [periodStart, setPeriodStart] = useState(initialReport?.periodStart ?? "");
   const [periodEnd, setPeriodEnd] = useState(initialReport?.periodEnd ?? "");
-  const [exposure, setExposure] = useState<Exposure>({ ...emptyExposure(), ...(initialReport?.exposure ?? {}) });
+  const [exposure, setExposure] = useState<Exposure>(() => {
+    const base: Exposure = { ...emptyExposure(), ...(initialReport?.exposure ?? {}) };
+    // 只有新增週報（沒有 initialReport）才用當下算出的快照預填自動摘要句；
+    // 編輯既有週報就不動，沿用已經存在 initialReport.exposure 裡的凍結內容。
+    if (!initialReport && autoSnapshots) {
+      for (const platform of PRIMARY_EXPOSURE_PLATFORMS) {
+        const snapshot = autoSnapshots[platform.key];
+        if (!snapshot) continue;
+        base[platform.key] = {
+          done: snapshot.status !== "inactive",
+          note: describeExposureAutoSnapshot(platform.label, snapshot),
+          auto: snapshot
+        };
+      }
+    }
+    return base;
+  });
   const [inquiriesWeek, setInquiriesWeek] = useState(String(initialReport?.inquiriesWeek ?? 0));
   const [inquiriesTotal, setInquiriesTotal] = useState(String(initialReport?.inquiriesTotal ?? 0));
   const [viewingsWeek, setViewingsWeek] = useState(String(initialReport?.viewingsWeek ?? 0));
@@ -155,9 +202,109 @@ export default function ReportForm({
       </section>
 
       <section className="seller-panel">
-        <h2>本週曝光</h2>
+        <h2>主要平台曝光</h2>
+        <div className="primary-exposure-grid">
+          {PRIMARY_EXPOSURE_PLATFORMS.map((platform) => {
+            const capability = EXPOSURE_TRACKING_CAPABILITY[platform.key];
+            const link = exposureLinks.find((l) => l.platform === platform.key) ?? null;
+            const entry = exposure[platform.key] ?? { done: false, note: "" };
+            const activeDays =
+              link && periodEnd
+                ? Math.max(0, Math.floor((new Date(periodEnd).getTime() - new Date(link.startedAt).getTime()) / 86_400_000))
+                : null;
+
+            if (!link) {
+              return (
+                <div className="primary-exposure-card is-unset" key={platform.key}>
+                  <div className="primary-exposure-top">
+                    <strong>{platform.label}</strong>
+                    <span className="cap-tag">{EXPOSURE_CAPABILITY_LABEL[capability]}</span>
+                  </div>
+                  <p>
+                    尚未設定追蹤網址，請到案件的「
+                    <a href={`/admin/sellers/${sellerId}`}>曝光管理</a>」設定。
+                  </p>
+                </div>
+              );
+            }
+
+            if (capability === "manual") {
+              return (
+                <div className="primary-exposure-card" key={platform.key}>
+                  <div className="primary-exposure-top">
+                    <strong>{platform.label}</strong>
+                    <span className="cap-tag">{EXPOSURE_CAPABILITY_LABEL[capability]}</span>
+                  </div>
+                  {activeDays !== null ? <div className="primary-exposure-days">已持續刊登 {activeDays} 天</div> : null}
+                  <label className="primary-exposure-toggle">
+                    本週已曝光
+                    <input
+                      checked={entry.done}
+                      onChange={(e) => updateExposure(platform.key, { done: e.target.checked })}
+                      type="checkbox"
+                    />
+                  </label>
+                  <input
+                    onChange={(e) => updateExposure(platform.key, { note: e.target.value })}
+                    placeholder="簡短說明（例如：8/3 上架）"
+                    type="text"
+                    value={entry.note}
+                  />
+                </div>
+              );
+            }
+
+            const auto = entry.auto;
+            return (
+              <div className="primary-exposure-card" key={platform.key}>
+                <div className="primary-exposure-top">
+                  <strong>{platform.label}</strong>
+                  <span className={`pill pill--${statusTone(auto?.status)}`}>
+                    {auto ? EXPOSURE_AUTO_STATUS_LABEL[auto.status] : EXPOSURE_AUTO_STATUS_LABEL.unverifiable}
+                  </span>
+                </div>
+                <span className="cap-tag">{EXPOSURE_CAPABILITY_LABEL[capability]}</span>
+                {activeDays !== null ? <div className="primary-exposure-days">已持續刊登 {activeDays} 天</div> : null}
+                {auto?.status === "inactive" ? (
+                  <div className="primary-exposure-nodata">請確認是否下架、換網址或重新刊登</div>
+                ) : auto && auto.cumulativeViews !== null ? (
+                  <div className="primary-exposure-metrics">
+                    <div>
+                      <span className="num">{auto.cumulativeViews}</span>
+                      <span className="label">累積瀏覽</span>
+                    </div>
+                    {auto.weeklyViewDelta !== null ? (
+                      <div>
+                        <span className="num delta">
+                          {auto.weeklyViewDelta >= 0 ? "+" : ""}
+                          {auto.weeklyViewDelta}
+                        </span>
+                        <span className="label">本週新增</span>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="primary-exposure-nodata">瀏覽數：平台無法自動取得</div>
+                )}
+                {auto?.lastCheckedAt ? <div className="primary-exposure-checked">最後檢查：{formatCheckedAt(auto.lastCheckedAt)}</div> : null}
+                <div className="field">
+                  <label htmlFor={`summary-${platform.key}`}>本週摘要（自動產生，可修改）</label>
+                  <textarea
+                    id={`summary-${platform.key}`}
+                    onChange={(e) => updateExposure(platform.key, { note: e.target.value })}
+                    value={entry.note}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="seller-panel">
+        <h2>人工曝光</h2>
         <div className="exposure-grid">
-          {EXPOSURE_CHANNELS.map((channel) => (
+          {MANUAL_EXPOSURE_CHANNELS.map((channel) => (
             <div className="exposure-item" key={channel.key}>
               <label className="exposure-item-top">
                 <span>{channel.label}</span>

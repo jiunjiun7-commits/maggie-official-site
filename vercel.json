@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/market-radar",
       "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/cron/exposure-check",
+      "schedule": "0 22 * * *"
     }
   ]
 }
