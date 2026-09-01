@@ -4,8 +4,10 @@ import { useState } from "react";
 import type { Seller, SellerStatus } from "@/lib/seller-store";
 import type { SellerReport } from "@/lib/seller-report-store";
 import type { ExposureLink } from "@/lib/seller-exposure-store";
+import type { MarketCompetitor } from "@/lib/seller-market-store";
 import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
 import ExposureLinksPanel from "./ExposureLinksPanel";
+import MarketCompetitorsPanel from "./MarketCompetitorsPanel";
 
 const STATUS_LABEL: Record<SellerStatus, string> = {
   active: "服務中",
@@ -21,12 +23,14 @@ export default function SellerDetailBoard({
   initialSeller,
   initialReports,
   initialHasToken,
-  initialExposureLinks
+  initialExposureLinks,
+  initialMarketCompetitors
 }: {
   initialSeller: Seller;
   initialReports: SellerReport[];
   initialHasToken: boolean;
   initialExposureLinks: ExposureLink[];
+  initialMarketCompetitors: MarketCompetitor[];
 }) {
   const [seller, setSeller] = useState(initialSeller);
   const [reports] = useState(initialReports);
@@ -141,6 +145,8 @@ export default function SellerDetailBoard({
           </section>
 
           <ExposureLinksPanel initialLinks={initialExposureLinks} sellerId={seller.id} />
+
+          <MarketCompetitorsPanel initialCompetitors={initialMarketCompetitors} sellerId={seller.id} />
         </div>
 
         <div>

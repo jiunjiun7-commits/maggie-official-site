@@ -572,3 +572,167 @@
   padding: 6px 8px;
   font-size: 12px;
 }
+
+/* --- 競品追蹤 --- */
+
+.panel-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.panel-head-row h2 {
+  margin: 0;
+}
+
+.market-competitors-hint {
+  margin: 0 0 14px;
+  color: #9fb0c7;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.market-competitor-form {
+  border: 1px solid #243955;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.market-competitor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.market-competitor-row {
+  border: 1px solid #243955;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.market-competitor-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.market-competitor-main a {
+  color: var(--gold-400);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.market-competitor-main a:hover {
+  text-decoration: underline;
+}
+
+.market-competitor-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.market-competitor-controls input,
+.market-competitor-controls select {
+  min-height: 34px;
+  background: #0b1626;
+  border: 1px solid #2b405e;
+  border-radius: 5px;
+  color: #f2f0ea;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.market-competitor-controls input[type="number"] {
+  width: 90px;
+}
+
+.market-competitor-tracked {
+  color: #6d7f98;
+  font-size: 11px;
+  margin-left: auto;
+}
+
+/* --- 週報表單的「市場觀察 — 競品追蹤」區塊 --- */
+
+.market-stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed #243955;
+}
+
+.market-stats-row .num {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #f2f0ea;
+}
+
+.market-stats-row .label {
+  font-size: 11px;
+  color: #9fb0c7;
+}
+
+.market-select-hint {
+  margin: 0 0 10px;
+  color: #9fb0c7;
+  font-size: 12.5px;
+}
+
+.market-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.market-select-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 9px 10px;
+  border: 1px solid #243955;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.market-select-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--gold-500);
+}
+
+.market-select-title {
+  flex: 1;
+  min-width: 120px;
+}
+
+.market-select-badge {
+  color: var(--gold-400);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.market-select-row a {
+  color: #7dd9e1;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.market-select-row a:hover {
+  text-decoration: underline;
+}

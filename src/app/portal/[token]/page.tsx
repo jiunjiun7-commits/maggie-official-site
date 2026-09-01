@@ -28,6 +28,13 @@ function daysServed(start: string) {
   return Math.max(0, days);
 }
 
+function MARKET_BADGE_LABEL(badge: "new" | "price_cut" | "sold" | "delisted", priceDropWan?: number) {
+  if (badge === "new") return "本週新增";
+  if (badge === "price_cut") return priceDropWan !== undefined ? `本週降價 ${priceDropWan}萬` : "本週降價";
+  if (badge === "sold") return "本週成交";
+  return "已下架";
+}
+
 export default async function SellerPortalPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const sellerId = await resolveSellerIdByToken(token);
@@ -189,7 +196,29 @@ function ReportBody({ report }: { report: SellerReport }) {
         </div>
       ) : null}
 
-      {report.marketObservationText || report.marketListingsCount !== null ? (
+      {report.marketCompetitorSnapshot.items.length ? (
+        <div className="portal-block">
+          <h3>本週市場競品</h3>
+          <div className="portal-stat-row">
+            <div><span>{report.marketCompetitorSnapshot.stats.available}</span>目前追蹤在售</div>
+            <div><span>{report.marketCompetitorSnapshot.stats.newThisWeek}</span>本週新增</div>
+            <div><span>{report.marketCompetitorSnapshot.stats.priceCutThisWeek}</span>本週降價</div>
+            <div><span>{report.marketCompetitorSnapshot.stats.soldThisWeek}</span>本週成交</div>
+          </div>
+          <ul className="portal-market-item-list">
+            {report.marketCompetitorSnapshot.items.map((item) => (
+              <li key={item.competitorId}>
+                <span>
+                  {item.platform}｜{item.title}｜{item.priceWan === null ? "面議" : `${item.priceWan.toLocaleString("zh-TW")}萬`}
+                  {item.badge ? `｜${MARKET_BADGE_LABEL(item.badge, item.priceDropWan)}` : ""}
+                </span>
+                <a href={item.url} rel="noreferrer" target="_blank">查看物件</a>
+              </li>
+            ))}
+          </ul>
+          {report.marketObservationText ? <p>{report.marketObservationText}</p> : null}
+        </div>
+      ) : report.marketObservationText || report.marketListingsCount !== null ? (
         <div className="portal-block">
           <h3>市場觀察</h3>
           <div className="portal-stat-row">

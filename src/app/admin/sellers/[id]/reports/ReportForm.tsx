@@ -20,7 +20,26 @@ import {
   type SellerReport
 } from "@/lib/seller-report-store";
 import type { ExposureLink } from "@/lib/seller-exposure-store";
+import type { MarketCompetitorWithChange, MarketStats } from "@/lib/seller-market-store";
 import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
+
+const MARKET_BADGE_LABEL: Record<string, string> = {
+  new: "NEW 本週新增",
+  sold: "本週成交",
+  delisted: "已下架"
+};
+
+function marketBadgeLabel(competitor: MarketCompetitorWithChange) {
+  if (!competitor.badge) return null;
+  if (competitor.badge === "price_cut") {
+    return competitor.priceDropWan !== undefined ? `本週降價 ${competitor.priceDropWan}萬` : "本週降價";
+  }
+  return MARKET_BADGE_LABEL[competitor.badge] ?? null;
+}
+
+function formatMarketPrice(priceWan: number | null) {
+  return priceWan === null ? "面議" : `${priceWan.toLocaleString("zh-TW")}萬`;
+}
 
 function emptyExposure(): Exposure {
   return Object.fromEntries(EXPOSURE_CHANNELS.map((c) => [c.key, { done: false, note: "" }])) as Exposure;
@@ -42,7 +61,9 @@ export default function ReportForm({
   sellerId,
   initialReport,
   exposureLinks,
-  autoSnapshots
+  autoSnapshots,
+  marketCompetitors,
+  marketStats
 }: {
   sellerId: string;
   initialReport?: SellerReport;
@@ -54,6 +75,9 @@ export default function ReportForm({
    * 直接沿用 initialReport.exposure 裡已經存好的 auto 快照。
    */
   autoSnapshots?: Partial<Record<PrimaryExposurePlatform, ExposureAutoSnapshot>>;
+  /** 案件目前追蹤中的競品清單，附上「這個報告週期內有沒有變化」的旗標，用來決定預設勾選跟徽章文字。 */
+  marketCompetitors: MarketCompetitorWithChange[];
+  marketStats: MarketStats;
 }) {
   const [reportDate, setReportDate] = useState(initialReport?.reportDate ?? "");
   const [periodStart, setPeriodStart] = useState(initialReport?.periodStart ?? "");
@@ -81,11 +105,22 @@ export default function ReportForm({
   const [viewingsTotal, setViewingsTotal] = useState(String(initialReport?.viewingsTotal ?? 0));
   const [viewingsPending, setViewingsPending] = useState(String(initialReport?.viewingsPending ?? 0));
   const [feedbackText, setFeedbackText] = useState(initialReport?.feedbackText ?? "");
-  const [marketListingsCount, setMarketListingsCount] = useState(initialReport?.marketListingsCount?.toString() ?? "");
-  const [marketNewListings, setMarketNewListings] = useState(initialReport?.marketNewListings?.toString() ?? "");
-  const [marketPriceCuts, setMarketPriceCuts] = useState(initialReport?.marketPriceCuts?.toString() ?? "");
-  const [marketSoldCount, setMarketSoldCount] = useState(initialReport?.marketSoldCount?.toString() ?? "");
   const [marketObservationText, setMarketObservationText] = useState(initialReport?.marketObservationText ?? "");
+  const [selectedCompetitorIds, setSelectedCompetitorIds] = useState<Set<string>>(() => {
+    // 本週有變化（新增/降價/成交/下架）的預設打勾；編輯既有週報時，之前已經存進快照裡的也一併勾起來，
+    // 不會因為這次重新計算「這週有沒有變化」而讓她原本手動選的項目掉勾。
+    const previouslySavedIds = new Set((initialReport?.marketCompetitorSnapshot?.items ?? []).map((i) => i.competitorId));
+    return new Set(marketCompetitors.filter((c) => c.badge !== null || previouslySavedIds.has(c.id)).map((c) => c.id));
+  });
+
+  function toggleCompetitorSelection(id: string) {
+    setSelectedCompetitorIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
   const [competitors, setCompetitors] = useState<Competitor[]>(
     (initialReport?.competitors ?? []).map((c) => ({
       name: c.name ?? "",
@@ -184,17 +219,33 @@ export default function ReportForm({
       viewingsTotal: Number(viewingsTotal) || 0,
       viewingsPending: Number(viewingsPending) || 0,
       feedbackText,
-      marketListingsCount: marketListingsCount === "" ? null : Number(marketListingsCount),
-      marketNewListings: marketNewListings === "" ? null : Number(marketNewListings),
-      marketPriceCuts: marketPriceCuts === "" ? null : Number(marketPriceCuts),
-      marketSoldCount: marketSoldCount === "" ? null : Number(marketSoldCount),
+      // 舊的 4 個手動數字欄位不再讓她自己填，改用新的競品追蹤統計數字回填，維持欄位有值、不留 null；
+      // Portal 顯示則是看 marketCompetitorSnapshot 有沒有值來決定用新版還是舊版畫面。
+      marketListingsCount: marketStats.available,
+      marketNewListings: marketStats.newThisWeek,
+      marketPriceCuts: marketStats.priceCutThisWeek,
+      marketSoldCount: marketStats.soldThisWeek,
       marketObservationText,
       competitors,
       maggieNotes,
       nextWeekStrategy,
       weeklyGoal,
       ownerActionNeeded,
-      promotionPhotos: photos
+      promotionPhotos: photos,
+      marketCompetitorSnapshot: {
+        stats: marketStats,
+        items: marketCompetitors
+          .filter((c) => selectedCompetitorIds.has(c.id))
+          .map((c) => ({
+            competitorId: c.id,
+            platform: c.platform,
+            title: c.title,
+            url: c.listingUrl,
+            priceWan: c.priceWan,
+            badge: c.badge,
+            ...(c.priceDropWan !== undefined ? { priceDropWan: c.priceDropWan } : {})
+          }))
+      }
     };
 
     try {
@@ -394,28 +445,49 @@ export default function ReportForm({
       </section>
 
       <section className="seller-panel">
-        <h2>市場觀察</h2>
-        <div className="field-grid">
-          <div className="field">
-            <label htmlFor="marketListingsCount">社區在售件數</label>
-            <input id="marketListingsCount" onChange={(e) => setMarketListingsCount(e.target.value)} type="number" value={marketListingsCount} />
+        <h2>市場觀察 — 競品追蹤</h2>
+        <div className="market-stats-row">
+          <div><span className="num">{marketStats.available}</span><span className="label">目前追蹤在售</span></div>
+          <div><span className="num">{marketStats.newThisWeek}</span><span className="label">本週新增</span></div>
+          <div><span className="num">{marketStats.priceCutThisWeek}</span><span className="label">本週降價</span></div>
+          <div><span className="num">{marketStats.soldThisWeek}</span><span className="label">本週成交</span></div>
+        </div>
+
+        {marketCompetitors.length ? (
+          <div className="market-select-list">
+            <p className="market-select-hint">
+              勾選要放進這份週報的競品——本週有變化的已預設打勾，也可以手動加選其他物件。
+            </p>
+            {marketCompetitors.map((competitor) => {
+              const badgeText = marketBadgeLabel(competitor);
+              return (
+                <label className="market-select-row" key={competitor.id}>
+                  <input
+                    checked={selectedCompetitorIds.has(competitor.id)}
+                    onChange={() => toggleCompetitorSelection(competitor.id)}
+                    type="checkbox"
+                  />
+                  <span className="cap-tag">{competitor.platform}</span>
+                  <span className="market-select-title">{competitor.title}</span>
+                  <span>{formatMarketPrice(competitor.priceWan)}</span>
+                  {badgeText ? <span className="market-select-badge">{badgeText}</span> : null}
+                  <a href={competitor.listingUrl} onClick={(e) => e.stopPropagation()} rel="noreferrer" target="_blank">
+                    查看物件
+                  </a>
+                </label>
+              );
+            })}
           </div>
-          <div className="field">
-            <label htmlFor="marketNewListings">本週新增件數</label>
-            <input id="marketNewListings" onChange={(e) => setMarketNewListings(e.target.value)} type="number" value={marketNewListings} />
-          </div>
-          <div className="field">
-            <label htmlFor="marketPriceCuts">本週降價件數</label>
-            <input id="marketPriceCuts" onChange={(e) => setMarketPriceCuts(e.target.value)} type="number" value={marketPriceCuts} />
-          </div>
-          <div className="field">
-            <label htmlFor="marketSoldCount">本週成交件數</label>
-            <input id="marketSoldCount" onChange={(e) => setMarketSoldCount(e.target.value)} type="number" value={marketSoldCount} />
-          </div>
-          <div className="field full">
-            <label htmlFor="marketObservationText">市場觀察文字</label>
-            <textarea id="marketObservationText" onChange={(e) => setMarketObservationText(e.target.value)} value={marketObservationText} />
-          </div>
+        ) : (
+          <p className="empty-state">
+            案件還沒有追蹤中的競品，請到「
+            <a href={`/admin/sellers/${sellerId}`}>競品追蹤</a>」新增。
+          </p>
+        )}
+
+        <div className="field full">
+          <label htmlFor="marketObservationText">市場觀察文字</label>
+          <textarea id="marketObservationText" onChange={(e) => setMarketObservationText(e.target.value)} value={marketObservationText} />
         </div>
       </section>
 

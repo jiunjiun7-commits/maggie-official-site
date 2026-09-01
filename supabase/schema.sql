@@ -1106,3 +1106,46 @@ alter table seller_reports add column if not exists promotion_photos jsonb not n
 insert into storage.buckets (id, name, public)
 values ('seller-report-photos', 'seller-report-photos', true)
 on conflict (id) do nothing;
+
+-- ==========================================================================
+-- 屋主回報系統：競品／市場物件追蹤（升級「市場觀察」）
+-- 案件層級持續存在的競品清單，不限平台、手動新增網址，不做任何自動抓取
+-- （這點跟樂屋網一樣是刻意的，不想對別人的網站發不必要的請求）。
+-- 價格/狀態變動各自記一筆歷史，讓「本週降價多少」「本週成交幾件」
+-- 可以從歷史紀錄算出來，不用另外維護一個「本週有沒有變動」的旗標欄位。
+-- ==========================================================================
+
+create table if not exists seller_market_competitors (
+  id uuid primary key default gen_random_uuid(),
+  seller_id uuid not null references sellers(id) on delete cascade,
+  platform text not null, -- 不限平台，自由文字（591／樂屋網／信義房屋／住商／永慶／台慶／永義／其他...）
+  listing_url text not null,
+  title text not null,
+  price_wan numeric, -- 開價，單位萬元，選填；存數字才能自動算「降價 90 萬」
+  note text not null default '',
+  status text not null default 'available' check (status in ('available', 'price_cut', 'sold', 'delisted')),
+  created_at timestamptz not null default now(), -- 「加入追蹤時間」＝這筆資料第一次建立的時間，不是平台真正上架日
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists seller_market_competitor_history (
+  id uuid primary key default gen_random_uuid(),
+  competitor_id uuid not null references seller_market_competitors(id) on delete cascade,
+  field text not null check (field in ('price', 'status')),
+  old_value text,
+  new_value text,
+  changed_at timestamptz not null default now()
+);
+
+create index if not exists seller_market_competitors_seller_idx on seller_market_competitors (seller_id);
+create index if not exists seller_market_competitor_history_competitor_idx
+  on seller_market_competitor_history (competitor_id, changed_at desc);
+
+alter table seller_market_competitors enable row level security;
+alter table seller_market_competitor_history enable row level security;
+grant select, insert, update, delete on public.seller_market_competitors to service_role;
+grant select, insert, update, delete on public.seller_market_competitor_history to service_role;
+
+-- 舊的 4 個手動數字欄位（market_listings_count 等）保留不動，既有歷史週報維持原本顯示；
+-- 新週報改寫進這個 jsonb 快照欄位，Portal 端會判斷「有新欄位就用新版，沒有就退回舊版」。
+alter table seller_reports add column if not exists market_competitor_snapshot jsonb not null default '{}';

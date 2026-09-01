@@ -120,6 +120,29 @@ export type NextWeekStrategy = { checklist: string[]; note: string };
 export type PromotionPhoto = { url: string; caption: string };
 export const MAX_PROMOTION_PHOTOS = 6;
 
+/**
+ * 建立/編輯週報當下算好凍結進去的競品追蹤快照，之後競品清單再變動也不會回頭改到已建立的週報。
+ * items 只放「本週有變化」或使用者手動勾選「加入本週報告」的競品，不是全部清單。
+ */
+export type MarketCompetitorSnapshotItem = {
+  competitorId: string; // 對回 seller_market_competitors.id，方便編輯週報時比對哪些原本被勾選過
+  platform: string;
+  title: string;
+  url: string;
+  priceWan: number | null;
+  badge: "new" | "price_cut" | "sold" | "delisted" | null;
+  priceDropWan?: number;
+};
+
+export type MarketCompetitorSnapshot = {
+  stats: { available: number; newThisWeek: number; priceCutThisWeek: number; soldThisWeek: number };
+  items: MarketCompetitorSnapshotItem[];
+};
+
+function emptyMarketCompetitorSnapshot(): MarketCompetitorSnapshot {
+  return { stats: { available: 0, newThisWeek: 0, priceCutThisWeek: 0, soldThisWeek: 0 }, items: [] };
+}
+
 export const STRATEGY_CHECKLIST_OPTIONS = [
   "持續網路曝光",
   "公司月會強推",
@@ -153,6 +176,7 @@ export type SellerReport = {
   weeklyGoal: string;
   ownerActionNeeded: string;
   promotionPhotos: PromotionPhoto[];
+  marketCompetitorSnapshot: MarketCompetitorSnapshot;
   createdAt: string;
 };
 
@@ -181,6 +205,7 @@ export type SellerReportRow = {
   weekly_goal: string;
   owner_action_needed: string;
   promotion_photos: PromotionPhoto[];
+  market_competitor_snapshot: MarketCompetitorSnapshot;
   created_at: string;
 };
 
@@ -209,6 +234,11 @@ function fromRow(row: SellerReportRow): SellerReport {
     weeklyGoal: row.weekly_goal,
     ownerActionNeeded: row.owner_action_needed,
     promotionPhotos: row.promotion_photos || [],
+    // 舊資料庫欄位預設值是 '{}'（沒有 stats/items），不能直接當成 MarketCompetitorSnapshot 用，
+    // 一定要檢查 items 陣列真的存在才採用，否則退回空快照，Portal 那邊才能正確判斷「這筆週報有沒有新版資料」。
+    marketCompetitorSnapshot: Array.isArray(row.market_competitor_snapshot?.items)
+      ? row.market_competitor_snapshot
+      : emptyMarketCompetitorSnapshot(),
     createdAt: row.created_at
   };
 }
@@ -235,6 +265,7 @@ export type SellerReportInput = {
   weeklyGoal: string;
   ownerActionNeeded: string;
   promotionPhotos: PromotionPhoto[];
+  marketCompetitorSnapshot: MarketCompetitorSnapshot;
 };
 
 function toRow(input: Partial<SellerReportInput>) {
@@ -263,6 +294,7 @@ function toRow(input: Partial<SellerReportInput>) {
     // 前後端雙重保險：即使表單端沒擋住，存檔前一定裁到上限，不讓資料庫存超過 6 張。
     row.promotion_photos = input.promotionPhotos.slice(0, MAX_PROMOTION_PHOTOS);
   }
+  if (input.marketCompetitorSnapshot !== undefined) row.market_competitor_snapshot = input.marketCompetitorSnapshot;
   return row;
 }
 
@@ -309,6 +341,7 @@ const PORTAL_REPORT_COLUMNS = [
   "weekly_goal",
   "owner_action_needed",
   "promotion_photos",
+  "market_competitor_snapshot",
   "created_at"
 ].join(", ");
 

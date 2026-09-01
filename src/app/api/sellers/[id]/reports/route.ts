@@ -52,7 +52,11 @@ function parseInput(body: Record<string, unknown>): SellerReportInput | null {
     ownerActionNeeded: String(body.ownerActionNeeded || ""),
     promotionPhotos: Array.isArray(body.promotionPhotos)
       ? (body.promotionPhotos as SellerReportInput["promotionPhotos"])
-      : []
+      : [],
+    marketCompetitorSnapshot: (body.marketCompetitorSnapshot as SellerReportInput["marketCompetitorSnapshot"]) || {
+      stats: { available: 0, newThisWeek: 0, priceCutThisWeek: 0, soldThisWeek: 0 },
+      items: []
+    }
   };
 }
 

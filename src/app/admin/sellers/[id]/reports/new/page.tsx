@@ -3,6 +3,7 @@ import Sidebar from "@/app/admin/_components/Sidebar";
 import { getSeller } from "@/lib/seller-store";
 import { EXPOSURE_TRACKING_CAPABILITY, PRIMARY_EXPOSURE_PLATFORMS, type ExposureAutoSnapshot, type PrimaryExposurePlatform } from "@/lib/seller-report-store";
 import { buildExposureAutoSnapshot, listExposureLinks } from "@/lib/seller-exposure-store";
+import { buildMarketSnapshot } from "@/lib/seller-market-store";
 import ReportForm from "../ReportForm";
 import "../../../../login/login.css";
 import "../../../sellers.css";
@@ -27,6 +28,11 @@ export default async function NewSellerReportPage({ params }: { params: Promise<
     autoSnapshots[platform.key] = await buildExposureAutoSnapshot(link, today);
   }
 
+  // 新週報還沒有實際期間，用最近 7 天當近似值算「本週有沒有變化」的預設勾選；
+  // 送出表單時實際存進去的是使用者當下勾選的結果，不是這裡算出來就直接存檔。
+  const approxPeriodStart = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
+  const { stats: marketStats, competitors: marketCompetitors } = await buildMarketSnapshot(id, approxPeriodStart, today);
+
   return (
     <div className="admin-page">
       <Sidebar />
@@ -39,7 +45,13 @@ export default async function NewSellerReportPage({ params }: { params: Promise<
             </p>
           </div>
         </div>
-        <ReportForm autoSnapshots={autoSnapshots} exposureLinks={exposureLinks} sellerId={seller.id} />
+        <ReportForm
+          autoSnapshots={autoSnapshots}
+          exposureLinks={exposureLinks}
+          marketCompetitors={marketCompetitors}
+          marketStats={marketStats}
+          sellerId={seller.id}
+        />
       </main>
     </div>
   );

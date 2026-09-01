@@ -248,6 +248,32 @@
   font-size: 12px;
 }
 
+.portal-market-item-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.portal-market-item-list li {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.portal-market-item-list a {
+  color: var(--gold-600);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .portal-checklist {
   margin: 0 0 8px;
   padding-left: 18px;
