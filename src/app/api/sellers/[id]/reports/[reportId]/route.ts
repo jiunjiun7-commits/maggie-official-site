@@ -51,6 +51,9 @@ function parsePartialInput(body: Record<string, unknown>): Partial<SellerReportI
   }
   if (typeof body.weeklyGoal === "string") input.weeklyGoal = body.weeklyGoal;
   if (typeof body.ownerActionNeeded === "string") input.ownerActionNeeded = body.ownerActionNeeded;
+  if (Array.isArray(body.promotionPhotos)) {
+    input.promotionPhotos = body.promotionPhotos as SellerReportInput["promotionPhotos"];
+  }
 
   return input;
 }

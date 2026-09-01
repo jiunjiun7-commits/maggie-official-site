@@ -116,6 +116,10 @@ export type Competitor = {
 
 export type NextWeekStrategy = { checklist: string[]; note: string };
 
+/** 本週推廣紀錄照片，選填，最多 4～6 張，順序就是上傳順序（不支援拖曳排序）。 */
+export type PromotionPhoto = { url: string; caption: string };
+export const MAX_PROMOTION_PHOTOS = 6;
+
 export const STRATEGY_CHECKLIST_OPTIONS = [
   "持續網路曝光",
   "公司月會強推",
@@ -148,6 +152,7 @@ export type SellerReport = {
   nextWeekStrategy: NextWeekStrategy;
   weeklyGoal: string;
   ownerActionNeeded: string;
+  promotionPhotos: PromotionPhoto[];
   createdAt: string;
 };
 
@@ -175,6 +180,7 @@ export type SellerReportRow = {
   next_week_strategy: NextWeekStrategy;
   weekly_goal: string;
   owner_action_needed: string;
+  promotion_photos: PromotionPhoto[];
   created_at: string;
 };
 
@@ -202,6 +208,7 @@ function fromRow(row: SellerReportRow): SellerReport {
     nextWeekStrategy: row.next_week_strategy || { checklist: [], note: "" },
     weeklyGoal: row.weekly_goal,
     ownerActionNeeded: row.owner_action_needed,
+    promotionPhotos: row.promotion_photos || [],
     createdAt: row.created_at
   };
 }
@@ -227,6 +234,7 @@ export type SellerReportInput = {
   nextWeekStrategy: NextWeekStrategy;
   weeklyGoal: string;
   ownerActionNeeded: string;
+  promotionPhotos: PromotionPhoto[];
 };
 
 function toRow(input: Partial<SellerReportInput>) {
@@ -251,6 +259,10 @@ function toRow(input: Partial<SellerReportInput>) {
   if (input.nextWeekStrategy !== undefined) row.next_week_strategy = input.nextWeekStrategy;
   if (input.weeklyGoal !== undefined) row.weekly_goal = input.weeklyGoal;
   if (input.ownerActionNeeded !== undefined) row.owner_action_needed = input.ownerActionNeeded;
+  if (input.promotionPhotos !== undefined) {
+    // 前後端雙重保險：即使表單端沒擋住，存檔前一定裁到上限，不讓資料庫存超過 6 張。
+    row.promotion_photos = input.promotionPhotos.slice(0, MAX_PROMOTION_PHOTOS);
+  }
   return row;
 }
 
@@ -296,6 +308,7 @@ const PORTAL_REPORT_COLUMNS = [
   "next_week_strategy",
   "weekly_goal",
   "owner_action_needed",
+  "promotion_photos",
   "created_at"
 ].join(", ");
 

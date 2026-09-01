@@ -1092,3 +1092,17 @@ alter table seller_exposure_links enable row level security;
 alter table seller_exposure_checks enable row level security;
 grant select, insert, update, delete on public.seller_exposure_links to service_role;
 grant select, insert, update, delete on public.seller_exposure_checks to service_role;
+
+-- ==========================================================================
+-- 屋主回報系統：本週推廣紀錄照片
+-- 沿用 competitors 同一種 jsonb 陣列模式，不另建照片資料表。
+-- 檔案本身存在 Supabase Storage 的公開 bucket，檔名用隨機 UUID
+-- （不含案件名稱／屋主姓名／地址），跟屋主 Portal 既有「連結本身就是保密邊界」
+-- 的安全模型一致，讀取不用另外簽網址。
+-- ==========================================================================
+
+alter table seller_reports add column if not exists promotion_photos jsonb not null default '[]';
+
+insert into storage.buckets (id, name, public)
+values ('seller-report-photos', 'seller-report-photos', true)
+on conflict (id) do nothing;

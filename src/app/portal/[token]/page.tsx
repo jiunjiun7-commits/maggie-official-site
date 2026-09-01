@@ -8,6 +8,7 @@ import {
   listSellerReportsForPortal,
   type SellerReport
 } from "@/lib/seller-report-store";
+import PromotionPhotoGallery from "./PromotionPhotoGallery";
 import "./portal.css";
 
 export const dynamic = "force-dynamic";
@@ -162,6 +163,13 @@ function ReportBody({ report }: { report: SellerReport }) {
           <p className="portal-muted">本週尚無其他曝光紀錄。</p>
         )}
       </div>
+
+      {report.promotionPhotos.length ? (
+        <div className="portal-block">
+          <h3>本週推廣紀錄</h3>
+          <PromotionPhotoGallery photos={report.promotionPhotos} />
+        </div>
+      ) : null}
 
       <div className="portal-block">
         <h3>本週詢問／帶看</h3>

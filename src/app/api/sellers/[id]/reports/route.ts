@@ -49,7 +49,10 @@ function parseInput(body: Record<string, unknown>): SellerReportInput | null {
     maggieNotes: String(body.maggieNotes || ""),
     nextWeekStrategy: (body.nextWeekStrategy as SellerReportInput["nextWeekStrategy"]) || { checklist: [], note: "" },
     weeklyGoal: String(body.weeklyGoal || ""),
-    ownerActionNeeded: String(body.ownerActionNeeded || "")
+    ownerActionNeeded: String(body.ownerActionNeeded || ""),
+    promotionPhotos: Array.isArray(body.promotionPhotos)
+      ? (body.promotionPhotos as SellerReportInput["promotionPhotos"])
+      : []
   };
 }
 

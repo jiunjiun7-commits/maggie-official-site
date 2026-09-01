@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   describeExposureAutoSnapshot,
   EXPOSURE_AUTO_STATUS_LABEL,
@@ -8,6 +8,7 @@ import {
   EXPOSURE_CHANNELS,
   EXPOSURE_TRACKING_CAPABILITY,
   MANUAL_EXPOSURE_CHANNELS,
+  MAX_PROMOTION_PHOTOS,
   PRIMARY_EXPOSURE_PLATFORMS,
   STRATEGY_CHECKLIST_OPTIONS,
   type Competitor,
@@ -15,6 +16,7 @@ import {
   type ExposureAutoSnapshot,
   type NextWeekStrategy,
   type PrimaryExposurePlatform,
+  type PromotionPhoto,
   type SellerReport
 } from "@/lib/seller-report-store";
 import type { ExposureLink } from "@/lib/seller-exposure-store";
@@ -100,6 +102,9 @@ export default function ReportForm({
   const [strategyNote, setStrategyNote] = useState(initialReport?.nextWeekStrategy?.note ?? "");
   const [weeklyGoal, setWeeklyGoal] = useState(initialReport?.weeklyGoal ?? "");
   const [ownerActionNeeded, setOwnerActionNeeded] = useState(initialReport?.ownerActionNeeded ?? "");
+  const [photos, setPhotos] = useState<PromotionPhoto[]>(initialReport?.promotionPhotos ?? []);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -125,6 +130,35 @@ export default function ReportForm({
 
   function removeCompetitor(index: number) {
     setCompetitors((current) => current.filter((_, i) => i !== index));
+  }
+
+  async function handlePhotoFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // 允許連續選同一個檔名也能觸發 change
+    if (!file) return;
+
+    setPhotoUploading(true);
+    setMessage("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch(`/api/sellers/${sellerId}/report-photos`, { method: "POST", body: formData });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "照片上傳失敗");
+      setPhotos((current) => [...current, { url: payload.url, caption: "" }]);
+    } catch (caught) {
+      setMessage(caught instanceof Error ? caught.message : "照片上傳失敗");
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
+
+  function updatePhotoCaption(index: number, caption: string) {
+    setPhotos((current) => current.map((p, i) => (i === index ? { ...p, caption } : p)));
+  }
+
+  function removePhoto(index: number) {
+    setPhotos((current) => current.filter((_, i) => i !== index));
   }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -159,7 +193,8 @@ export default function ReportForm({
       maggieNotes,
       nextWeekStrategy,
       weeklyGoal,
-      ownerActionNeeded
+      ownerActionNeeded,
+      promotionPhotos: photos
     };
 
     try {
@@ -431,6 +466,44 @@ export default function ReportForm({
           </div>
         ))}
         <button className="button-secondary" onClick={addCompetitor} type="button">＋ 新增競品</button>
+      </section>
+
+      <section className="seller-panel">
+        <h2>本週推廣紀錄照片（選填）</h2>
+        <p className="promotion-photos-hint">
+          實際推案、公司活動、跨店推案等現場照片，讓屋主看到這週實際做了哪些推廣。最多 {MAX_PROMOTION_PHOTOS} 張，沒有上傳的話屋主週報完全不會出現這個區塊。
+        </p>
+        {photos.length ? (
+          <div className="promotion-photo-grid">
+            {photos.map((photo, index) => (
+              <div className="promotion-photo-card" key={photo.url}>
+                <img alt="" src={photo.url} />
+                <input
+                  onChange={(e) => updatePhotoCaption(index, e.target.value)}
+                  placeholder="簡短說明（選填，例如：9/1 農十六區會物件推薦）"
+                  type="text"
+                  value={photo.caption}
+                />
+                <button className="button-secondary" onClick={() => removePhoto(index)} type="button">刪除</button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        <input
+          accept="image/jpeg,image/png,image/webp"
+          hidden
+          onChange={handlePhotoFileChange}
+          ref={photoInputRef}
+          type="file"
+        />
+        <button
+          className="button-secondary"
+          disabled={photoUploading || photos.length >= MAX_PROMOTION_PHOTOS}
+          onClick={() => photoInputRef.current?.click()}
+          type="button"
+        >
+          {photoUploading ? "上傳中..." : `＋ 新增照片（${photos.length}/${MAX_PROMOTION_PHOTOS}）`}
+        </button>
       </section>
 
       <section className="seller-panel">

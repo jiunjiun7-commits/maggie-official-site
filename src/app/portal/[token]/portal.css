@@ -278,3 +278,86 @@
 .portal-history-item .portal-report-body {
   margin-top: 12px;
 }
+
+/* --- 本週推廣紀錄照片牆 --- */
+
+.portal-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .portal-photo-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.portal-photo-thumb {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0;
+  background: none;
+  cursor: zoom-in;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  font: inherit;
+}
+
+.portal-photo-thumb img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+}
+
+.portal-photo-thumb span {
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.portal-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(11, 11, 12, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  cursor: zoom-out;
+}
+
+.portal-lightbox img {
+  max-width: 100%;
+  max-height: 78vh;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.portal-lightbox p {
+  color: #fff;
+  font-size: 14px;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.portal-lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}

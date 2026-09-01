@@ -529,3 +529,46 @@
 .pill--warn { color: #ffd98b; border: 1px solid #896728; background: #342914; }
 .pill--bad { color: #ffb2bb; border: 1px solid #7b3b43; background: #2c1418; }
 .pill--mute { color: #c3ccda; border: 1px solid #3a4a63; background: rgba(255, 255, 255, 0.03); }
+
+/* --- 本週推廣紀錄照片 --- */
+
+.promotion-photos-hint {
+  margin: -6px 0 14px;
+  color: #9fb0c7;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.promotion-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.promotion-photo-card {
+  border: 1px solid #243955;
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.promotion-photo-card img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 5px;
+  background: #0b1626;
+}
+
+.promotion-photo-card input[type="text"] {
+  width: 100%;
+  background: #0b1626;
+  border: 1px solid #2b405e;
+  border-radius: 5px;
+  color: #f2f0ea;
+  padding: 6px 8px;
+  font-size: 12px;
+}
