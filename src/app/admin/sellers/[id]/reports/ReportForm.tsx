@@ -139,6 +139,9 @@ export default function ReportForm({
   const [ownerActionNeeded, setOwnerActionNeeded] = useState(initialReport?.ownerActionNeeded ?? "");
   const [photos, setPhotos] = useState<PromotionPhoto[]>(initialReport?.promotionPhotos ?? []);
   const [photoUploading, setPhotoUploading] = useState(false);
+  // 獨立於下面表單整體的 message，就近顯示在照片區塊旁邊——上傳失敗時人在這一區，
+  // 不會看不到錯誤（原本共用的 message 放在整份長表單最下面，太容易被忽略）。
+  const [photoError, setPhotoError] = useState("");
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const [busy, setBusy] = useState(false);
@@ -173,7 +176,7 @@ export default function ReportForm({
     if (!file) return;
 
     setPhotoUploading(true);
-    setMessage("");
+    setPhotoError("");
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -182,7 +185,7 @@ export default function ReportForm({
       if (!response.ok) throw new Error(payload.error || "照片上傳失敗");
       setPhotos((current) => [...current, { url: payload.url, caption: "" }]);
     } catch (caught) {
-      setMessage(caught instanceof Error ? caught.message : "照片上傳失敗");
+      setPhotoError(caught instanceof Error ? caught.message : "照片上傳失敗");
     } finally {
       setPhotoUploading(false);
     }
@@ -576,6 +579,7 @@ export default function ReportForm({
         >
           {photoUploading ? "上傳中..." : `＋ 新增照片（${photos.length}/${MAX_PROMOTION_PHOTOS}）`}
         </button>
+        {photoError ? <div className="form-error" style={{ marginTop: 10 }}>{photoError}</div> : null}
       </section>
 
       <section className="seller-panel">
