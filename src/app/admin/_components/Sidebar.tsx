@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const NAV_ITEMS = [
+const FULL_NAV_ITEMS = [
   { href: "/admin/appointments", label: "預約管理", icon: "📅" },
   { href: "/admin/sellers", label: "屋主案件", icon: "🏠" },
   { href: "/admin/ig-growth", label: "IG 10K", icon: "📈" },
@@ -14,12 +14,19 @@ const NAV_ITEMS = [
   { href: "/admin/market-radar/transactions", label: "成交資料庫", icon: "🗂️" }
 ];
 
+// Demo/Beta 部署（NEXT_PUBLIC_DEMO_MODE=1）只給測試者看「屋主案件」，
+// 其餘模組跟這次要蒐集回饋的功能無關，藏起來避免混淆——正式站台不會設這個變數，維持原本 6 個項目。
+const IS_DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "1";
+const NAV_ITEMS = IS_DEMO_MODE
+  ? FULL_NAV_ITEMS.filter((item) => item.href === "/admin/sellers")
+  : FULL_NAV_ITEMS;
+
 export default function Sidebar() {
   const pathname = usePathname();
 
   return (
     <aside className="admin-sidebar">
-      <Link className="admin-sidebar__brand" href="/admin/appointments">
+      <Link className="admin-sidebar__brand" href={IS_DEMO_MODE ? "/admin/sellers" : "/admin/appointments"}>
         <span className="admin-sidebar__mark">M</span>
         <span className="admin-sidebar__brand-text">後台管理</span>
       </Link>
