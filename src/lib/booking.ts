@@ -4,7 +4,7 @@ export const BOOKING_RULES = {
   slotMinutes: 60,
   workDays: [1, 2, 3, 4, 5],
   leadHours: 2,
-  daysAhead: 14
+  daysAhead: 30
 } as const;
 
 export const INTENTS = [
