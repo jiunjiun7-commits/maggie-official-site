@@ -41,6 +41,19 @@ function formatMarketPrice(priceWan: number | null) {
   return priceWan === null ? "面議" : `${priceWan.toLocaleString("zh-TW")}萬`;
 }
 
+/**
+ * 這段摘要是不是「系統自己產生、使用者沒動過」的？只有沒動過的才可以被重新產生的句子覆蓋掉，
+ * 否則 Maggie 自己改寫過的內容會在重新打開編輯頁時被洗掉。
+ *
+ * 會把含有「請自行確認」的舊句子一併視為未修改——那是早期版本自動產生、寫給內部看的措辭，
+ * 本來就不該留在屋主看得到的週報裡。
+ */
+function isUntouchedAutoNote(note: string, platformLabel: string, snapshot: ExposureAutoSnapshot) {
+  if (!note.trim()) return true;
+  if (note === describeExposureAutoSnapshot(platformLabel, snapshot)) return true;
+  return note.includes("請自行確認");
+}
+
 function emptyExposure(): Exposure {
   return Object.fromEntries(EXPOSURE_CHANNELS.map((c) => [c.key, { done: false, note: "" }])) as Exposure;
 }
@@ -70,9 +83,11 @@ export default function ReportForm({
   /** 案件在「曝光管理」設定的四個平台連結，用來顯示「已持續刊登 N 天」跟目前狀態。 */
   exposureLinks: ExposureLink[];
   /**
-   * 只有新增週報時才會傳入——用「報告週期」當下算出的追蹤快照，寫進 exposure.auto 之後就固定，
-   * 不會因為之後 cron 又抓到新數字而回頭改到已建立的週報。編輯既有週報時不傳，
-   * 直接沿用 initialReport.exposure 裡已經存好的 auto 快照。
+   * 用「報告週期」當下算出的追蹤快照，寫進 exposure.auto 之後就固定，
+   * 不會因為之後 cron 又抓到新數字而回頭改到已建立的週報。
+   *
+   * 新增週報時傳四個平台全部；編輯既有週報時只傳「從來沒被追蹤過」的那幾個
+   * （剛填好網址、追蹤器還沒跑就建了週報的情況），其餘維持 initialReport 裡的凍結快照。
    */
   autoSnapshots?: Partial<Record<PrimaryExposurePlatform, ExposureAutoSnapshot>>;
   /** 案件目前追蹤中的競品清單，附上「這個報告週期內有沒有變化」的旗標，用來決定預設勾選跟徽章文字。 */
@@ -84,15 +99,19 @@ export default function ReportForm({
   const [periodEnd, setPeriodEnd] = useState(initialReport?.periodEnd ?? "");
   const [exposure, setExposure] = useState<Exposure>(() => {
     const base: Exposure = { ...emptyExposure(), ...(initialReport?.exposure ?? {}) };
-    // 只有新增週報（沒有 initialReport）才用當下算出的快照預填自動摘要句；
-    // 編輯既有週報就不動，沿用已經存在 initialReport.exposure 裡的凍結內容。
-    if (!initialReport && autoSnapshots) {
+    // 要套用哪些快照由呼叫端決定：新增週報時是四個平台全部；編輯既有週報時，
+    // 只會收到「從來沒被追蹤過」那幾個平台的重算結果（見 reports/[reportId]/page.tsx），
+    // 真正有抓到數字的舊快照不會被送進來，維持凍結。
+    if (autoSnapshots) {
       for (const platform of PRIMARY_EXPOSURE_PLATFORMS) {
         const snapshot = autoSnapshots[platform.key];
         if (!snapshot) continue;
+        const previousNote = base[platform.key]?.note ?? "";
         base[platform.key] = {
           done: snapshot.status !== "inactive",
-          note: describeExposureAutoSnapshot(platform.label, snapshot),
+          note: isUntouchedAutoNote(previousNote, platform.label, snapshot)
+            ? describeExposureAutoSnapshot(platform.label, snapshot)
+            : previousNote,
           auto: snapshot
         };
       }

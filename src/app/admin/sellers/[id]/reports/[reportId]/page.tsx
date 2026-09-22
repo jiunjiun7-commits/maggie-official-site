@@ -1,8 +1,15 @@
 import { notFound } from "next/navigation";
 import Sidebar from "@/app/admin/_components/Sidebar";
 import { getSeller } from "@/lib/seller-store";
-import { getSellerReport } from "@/lib/seller-report-store";
-import { listExposureLinks } from "@/lib/seller-exposure-store";
+import {
+  EXPOSURE_TRACKING_CAPABILITY,
+  PRIMARY_EXPOSURE_PLATFORMS,
+  getSellerReport,
+  isUntrackedAutoSnapshot,
+  type ExposureAutoSnapshot,
+  type PrimaryExposurePlatform
+} from "@/lib/seller-report-store";
+import { buildExposureAutoSnapshot, listExposureLinks } from "@/lib/seller-exposure-store";
 import { buildMarketSnapshot } from "@/lib/seller-market-store";
 import ReportForm from "../ReportForm";
 import "../../../../login/login.css";
@@ -22,6 +29,18 @@ export default async function EditSellerReportPage({
     listExposureLinks(id)
   ]);
   if (!seller || !report) notFound();
+
+  // 「從來沒被追蹤過」的空快照才重算——例如剛把網址填進曝光管理、追蹤器還沒跑過就建了週報，
+  // 那份快照凍結的是「什麼都還沒有」，凍住它沒有任何意義，只會讓這份週報永遠顯示不出數據。
+  // 真正有抓到數字的舊快照維持凍結不動，已經發給屋主的週報不會因為之後又抓到新數字而被改掉。
+  const refreshedAutoSnapshots: Partial<Record<PrimaryExposurePlatform, ExposureAutoSnapshot>> = {};
+  for (const platform of PRIMARY_EXPOSURE_PLATFORMS) {
+    if (EXPOSURE_TRACKING_CAPABILITY[platform.key] === "manual") continue;
+    if (!isUntrackedAutoSnapshot(report.exposure[platform.key]?.auto)) continue;
+    const link = exposureLinks.find((l) => l.platform === platform.key);
+    if (!link) continue;
+    refreshedAutoSnapshots[platform.key] = await buildExposureAutoSnapshot(link, report.periodEnd);
+  }
 
   // 編輯既有週報時，用這份報告「真正的週期」重新查一次目前的競品清單與統計數字——
   // 統計數字本身還是這次算出來的（不是凍結值），但預設勾選會把當初存進快照裡的那些也一併勾上，
@@ -45,6 +64,7 @@ export default async function EditSellerReportPage({
           </div>
         </div>
         <ReportForm
+          autoSnapshots={refreshedAutoSnapshots}
           exposureLinks={exposureLinks}
           initialReport={report}
           marketCompetitors={marketCompetitors}

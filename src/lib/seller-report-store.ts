@@ -69,13 +69,35 @@ export const EXPOSURE_AUTO_STATUS_LABEL: Record<ExposureAutoSnapshot["status"], 
   attention: "🟡 需要注意"
 };
 
-/** 自動產生的週報摘要句——只出現在 Seller Report 的 note 欄位，不會預塞進「曝光管理」的人工補充說明。 */
+/**
+ * 這個平台「從來沒被追蹤器抓過任何一次」——例如剛把刊登網址填進曝光管理、
+ * 追蹤器（每天早上跑一次）還沒輪到，當天就先建了週報。
+ *
+ * 這跟「追蹤過、但這次沒抓成功」是兩回事：前者是還沒開始追蹤，後者是追蹤失敗。
+ * 分開判斷才能對屋主講出正確的話，也才知道哪些快照是可以安全重算的（見編輯週報頁）。
+ */
+export function isUntrackedAutoSnapshot(snapshot: ExposureAutoSnapshot | undefined): boolean {
+  if (!snapshot) return true;
+  return snapshot.status === "unverifiable" && !snapshot.lastCheckedAt;
+}
+
+/**
+ * 自動產生的週報摘要句——只出現在 Seller Report 的 note 欄位，不會預塞進「曝光管理」的人工補充說明。
+ *
+ * 注意：這段文字會原封不動出現在屋主看的 Portal 上，所以措辭是寫給「屋主」看的，
+ * 不能出現「請自行確認」這種其實是在交代 Maggie 自己去處理的句子。
+ */
 export function describeExposureAutoSnapshot(platformLabel: string, snapshot: ExposureAutoSnapshot): string {
   if (snapshot.status === "inactive") {
     return `${platformLabel}原刊登網址已失效，請確認是否下架、換網址或重新刊登。`;
   }
   if (snapshot.status === "unverifiable") {
-    return `本次無法自動驗證 ${platformLabel} 的刊登狀態，請自行確認。`;
+    // 剛上架、追蹤器還沒跑過：對屋主要講「才剛上架、下週起有數據」，
+    // 而不是「無法驗證」——後者會讓屋主以為刊登出了什麼問題。
+    if (isUntrackedAutoSnapshot(snapshot)) {
+      return `本週完成 ${platformLabel} 上架，系統已開始追蹤曝光成效，下週起提供累積瀏覽數據。`;
+    }
+    return `${platformLabel} 持續刊登中，本週的瀏覽數據暫時無法自動取得。`;
   }
   if (snapshot.cumulativeViews === null) {
     return `本週 ${platformLabel} 持續曝光中，已刊登 ${snapshot.activeDays} 天（平台未提供瀏覽數）。`;
