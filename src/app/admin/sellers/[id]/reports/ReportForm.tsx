@@ -22,8 +22,9 @@ import {
 import type { ExposureLink } from "@/lib/seller-exposure-store";
 import type { MarketCompetitorWithChange, MarketStats } from "@/lib/seller-market-store";
 import {
+  isListableForOwner,
   isRecordInPeriod,
-  recordLabel,
+  ownerFacingLabel,
   recordTimestamp,
   toSnapshotItem,
   type CustomerRecord,
@@ -142,6 +143,9 @@ export default function ReportForm({
       customerRecords
         .filter((r) => {
           if (previouslySaved.has(r.id)) return true;
+          // 兩層過濾：這種紀錄本來就不逐筆給屋主看（詢問／追蹤中／結束追蹤），
+          // 以及這一筆有沒有被關掉「顯示給屋主」。
+          if (!isListableForOwner(r)) return false;
           if (!r.visibleToOwner) return false;
           if (!periodStart || !periodEnd) return false;
           return isRecordInPeriod(r, periodStart, periodEnd);
@@ -294,7 +298,7 @@ export default function ReportForm({
       customerSnapshot: {
         stats: customerStats,
         items: customerRecords
-          .filter((r) => selectedRecordIds.has(r.id) && r.visibleToOwner)
+          .filter((r) => selectedRecordIds.has(r.id) && r.visibleToOwner && isListableForOwner(r))
           .map(toSnapshotItem)
       },
       marketCompetitorSnapshot: {
@@ -489,11 +493,12 @@ export default function ReportForm({
         {customerRecords.length ? (
           <div className="market-select-list">
             <p className="market-select-hint">
-              勾選要放進這份週報的紀錄——本週的紀錄已預設打勾。設為「不給屋主看」的紀錄不會出現在這裡，
+              勾選要放進這份週報的紀錄——本週的紀錄已預設打勾。詢問、追蹤中、結束追蹤只計入上面的統計，
+              不會逐筆列給屋主看；設為「不給屋主看」的也不會出現在這裡。
               客戶簡稱與內部備註永遠不會進到屋主端。
             </p>
             {customerRecords
-              .filter((record) => record.visibleToOwner)
+              .filter((record) => record.visibleToOwner && isListableForOwner(record))
               .map((record) => {
                 const when = recordTimestamp(record);
                 return (
@@ -503,7 +508,7 @@ export default function ReportForm({
                       onChange={() => toggleRecordSelection(record.id)}
                       type="checkbox"
                     />
-                    <span className="cap-tag">{recordLabel(record)}</span>
+                    <span className="cap-tag">{ownerFacingLabel(record)}</span>
                     <span>{when ? new Date(when).toLocaleDateString("zh-TW", { month: "2-digit", day: "2-digit" }) : "—"}</span>
                     <span className="market-select-title">{record.feedback || "（未填回饋）"}</span>
                     {record.photos.length ? <span className="market-select-badge">📷 {record.photos.length}</span> : null}

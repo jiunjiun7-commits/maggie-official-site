@@ -214,6 +214,30 @@ export function recordTimestamp(record: CustomerRecord): string | null {
   return record.occurredAt;
 }
 
+/**
+ * 這筆紀錄可不可以在屋主端「逐筆顯示」。
+ *
+ * 詢問／追蹤中／結束追蹤是銷售過程的內部狀態：只反映在統計數字裡，不單獨列給屋主看。
+ * 「詢問」列出來沒有資訊量、「結束追蹤」對屋主是負面訊息、「追蹤中」是狀態不是事件，
+ * 掛一個日期在旁邊只會讓人困惑。真正發生的事（已安排帶看、實際帶看、同業回饋、
+ * 推廣紀錄、其他）才列出來。
+ *
+ * 這是第一層過濾；每筆紀錄的「顯示給屋主」開關是第二層，兩層都通過才會進週報。
+ */
+export function isListableForOwner(record: CustomerRecord): boolean {
+  if (record.kind !== "customer") return true;
+  return record.status === "appointed" || record.status === "viewed";
+}
+
+/**
+ * 屋主端看到的標籤，跟後台的內部用語分開維護。
+ * 例如後台叫「已約帶看」（業務視角），對屋主講「已安排帶看」比較自然。
+ */
+export function ownerFacingLabel(record: CustomerRecord): string {
+  if (record.kind === "customer" && record.status === "appointed") return "已安排帶看";
+  return recordLabel(record);
+}
+
 export function recordLabel(record: CustomerRecord): string {
   if (record.kind !== "customer") {
     return CUSTOMER_RECORD_KINDS.find((k) => k.key === record.kind)?.label ?? "紀錄";
@@ -273,7 +297,7 @@ export function toSnapshotItem(record: CustomerRecord): CustomerSnapshotItem {
   return {
     recordId: record.id,
     kind: record.kind,
-    label: recordLabel(record),
+    label: ownerFacingLabel(record),
     occurredAt: recordTimestamp(record) ?? record.createdAt,
     feedback: record.feedback,
     photos: record.photos
