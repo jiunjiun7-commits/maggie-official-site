@@ -156,6 +156,14 @@ export default function ReportForm({
     );
   });
 
+  // 這份週報的週期內有沒有任何銷售紀錄。跟著日期欄位連動，她改週期就會重算。
+  // 「已安排帶看」是預告未來的事，不算在「本週有沒有做事」裡面。
+  const recordsInPeriod =
+    periodStart && periodEnd
+      ? salesRecords.filter((r) => r.kind !== "appointment" && isRecordInPeriod(r, periodStart, periodEnd))
+      : [];
+  const hasNoRecordsThisWeek = Boolean(periodStart && periodEnd) && recordsInPeriod.length === 0;
+
   function toggleRecordSelection(id: string) {
     setSelectedRecordIds((current) => {
       const next = new Set(current);
@@ -266,6 +274,19 @@ export default function ReportForm({
     if (isImplausibleYear(reportDate) || isImplausibleYear(periodStart) || isImplausibleYear(periodEnd)) {
       setMessage(IMPLAUSIBLE_YEAR_MESSAGE);
       return;
+    }
+
+    // 沒有任何銷售紀錄就送出，屋主會收到一份「詢問 0、帶看 0」的週報。
+    // 這通常是「忘了先記錄」而不是「本週真的沒動靜」，所以在這裡擋一次讓她選。
+    if (hasNoRecordsThisWeek) {
+      const proceed = window.confirm(
+        `本週（${periodStart} ～ ${periodEnd}）沒有任何銷售紀錄，` +
+          `週報上的詢問與帶看都會是 0，屋主會看到一份沒有進度的報告。
+
+` +
+          `按「取消」先去補紀錄；按「確定」表示本週確實沒有任何詢問或帶看。`
+      );
+      if (!proceed) return;
     }
 
     setBusy(true);
@@ -489,6 +510,13 @@ export default function ReportForm({
           <div><span className="n">{salesStats.viewingGroups}</span><span className="l">本週實際帶看（組）</span></div>
           <div><span className="n">{salesStats.viewingGroupsTotal}</span><span className="l">累積帶看（組）</span></div>
         </div>
+
+        {hasNoRecordsThisWeek ? (
+          <div className="form-error" style={{ marginBottom: 14 }}>
+            本週（{periodStart} ～ {periodEnd}）尚無銷售紀錄，這份週報的詢問與帶看都會是 0。
+            建議先到「<a href={`/admin/sellers/${sellerId}`}>銷售紀錄</a>」補上本週的詢問／帶看／回饋。
+          </div>
+        ) : null}
 
         {salesRecords.length ? (
           <div className="market-select-list">
