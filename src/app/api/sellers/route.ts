@@ -40,7 +40,6 @@ export async function POST(request: Request) {
     address: String(body.address || ""),
     internalNote: String(body.internalNote || ""),
     status,
-    baselineInquiries: Number(body.baselineInquiries) || 0,
     baselineViewings: Number(body.baselineViewings) || 0
   });
 

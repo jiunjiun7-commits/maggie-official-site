@@ -4,7 +4,7 @@ import { getSeller } from "@/lib/seller-store";
 import { EXPOSURE_TRACKING_CAPABILITY, PRIMARY_EXPOSURE_PLATFORMS, type ExposureAutoSnapshot, type PrimaryExposurePlatform } from "@/lib/seller-report-store";
 import { buildExposureAutoSnapshot, listExposureLinks } from "@/lib/seller-exposure-store";
 import { buildMarketSnapshot } from "@/lib/seller-market-store";
-import { buildCustomerSnapshot } from "@/lib/seller-customer-store";
+import { buildSalesSnapshot } from "@/lib/seller-sales-store";
 import ReportForm from "../ReportForm";
 import "../../../../login/login.css";
 import "../../../sellers.css";
@@ -34,13 +34,13 @@ export default async function NewSellerReportPage({ params }: { params: Promise<
   const approxPeriodStart = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
   const { stats: marketStats, competitors: marketCompetitors } = await buildMarketSnapshot(id, approxPeriodStart, today);
 
-  // 客戶／銷售紀錄的自動統計。新報告還沒有實際週期，同樣用最近 7 天當近似值；
+  // 銷售紀錄的自動統計。新報告還沒有實際週期，同樣用最近 7 天當近似值；
   // 累積數字要把案件的「期初累積值」加回來，既有案件才不會一改成自動統計就回退成 0。
-  const { stats: customerStats, records: customerRecords } = await buildCustomerSnapshot(
+  const { stats: salesStats, records: salesRecords } = await buildSalesSnapshot(
     id,
     approxPeriodStart,
     today,
-    { inquiries: seller.baselineInquiries, viewings: seller.baselineViewings }
+    { viewings: seller.baselineViewings }
   );
 
   return (
@@ -58,8 +58,8 @@ export default async function NewSellerReportPage({ params }: { params: Promise<
         <ReportForm
           autoSnapshots={autoSnapshots}
           exposureLinks={exposureLinks}
-          customerRecords={customerRecords}
-          customerStats={customerStats}
+          salesRecords={salesRecords}
+          salesStats={salesStats}
           marketCompetitors={marketCompetitors}
           marketStats={marketStats}
           sellerId={seller.id}

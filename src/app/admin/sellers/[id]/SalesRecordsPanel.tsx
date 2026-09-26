@@ -2,69 +2,43 @@
 
 import { useRef, useState } from "react";
 import {
-  CUSTOMER_RECORD_KINDS,
-  CUSTOMER_RECORD_STATUSES,
-  type CustomerRecord,
-  type CustomerRecordKind,
-  type CustomerRecordStatus
-} from "@/lib/seller-customer-store";
+  SALES_RECORD_KINDS,
+  kindHasGroups,
+  kindLabel,
+  type SalesRecord,
+  type SalesRecordKind
+} from "@/lib/seller-sales-store";
 import type { PromotionPhoto } from "@/lib/seller-report-store";
 import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
 
 const MAX_RECORD_PHOTOS = 6;
 
-function formatWhen(value: string | null) {
-  if (!value) return "—";
-  return new Date(value).toLocaleString("zh-TW", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-}
-
-/**
- * timestamptz → date 輸入框要的 "YYYY-MM-DD"。
- * 週報只用得到日期，不記時間——問到／看到的「幾點」對週報沒有意義，
- * 每次都要選時間反而是多餘的輸入負擔。
- */
-function toDateInput(value: string | null) {
-  if (!value) return "";
-  const d = new Date(value);
+function today() {
+  const d = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function todayInput() {
-  return toDateInput(new Date().toISOString());
+function formatDate(value: string) {
+  if (!value) return "—";
+  return value.slice(5).replace("-", "/");
 }
 
-export default function CustomerRecordsPanel({
+export default function SalesRecordsPanel({
   sellerId,
   initialRecords
 }: {
   sellerId: string;
-  initialRecords: CustomerRecord[];
+  initialRecords: SalesRecord[];
 }) {
   const [records, setRecords] = useState(initialRecords);
   const [showForm, setShowForm] = useState(false);
-  const [formKind, setFormKind] = useState<CustomerRecordKind>("customer");
-  const [formStatus, setFormStatus] = useState<CustomerRecordStatus>("inquiry");
+  const [formKind, setFormKind] = useState<SalesRecordKind>("viewing");
   const [newPhotos, setNewPhotos] = useState<PromotionPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const photoInputRef = useRef<HTMLInputElement>(null);
-
-  async function uploadPhoto(file: File): Promise<PromotionPhoto> {
-    const formData = new FormData();
-    formData.append("file", file);
-    // 沿用既有的週報照片上傳 API 與同一個 Storage bucket，不另外建一套。
-    const response = await fetch(`/api/sellers/${sellerId}/report-photos`, { method: "POST", body: formData });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "照片上傳失敗");
-    return { url: payload.url, caption: "" };
-  }
 
   async function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -73,8 +47,13 @@ export default function CustomerRecordsPanel({
     setUploading(true);
     setMessage("");
     try {
-      const photo = await uploadPhoto(file);
-      setNewPhotos((current) => [...current, photo]);
+      const formData = new FormData();
+      formData.append("file", file);
+      // 沿用既有的週報照片上傳 API 與同一個 Storage bucket，不另外建一套。
+      const response = await fetch(`/api/sellers/${sellerId}/report-photos`, { method: "POST", body: formData });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "照片上傳失敗");
+      setNewPhotos((current) => [...current, { url: payload.url, caption: "" }]);
     } catch (caught) {
       setMessage(caught instanceof Error ? caught.message : "照片上傳失敗");
     } finally {
@@ -86,27 +65,21 @@ export default function CustomerRecordsPanel({
     event.preventDefault();
     setMessage("");
     const form = new FormData(event.currentTarget);
-    // 跟案件基本資料、週報同一套日期防呆，避免民國年被當成西元年存進去。
-    for (const key of ["inquiredAt", "viewedAt", "occurredAt"]) {
-      const value = String(form.get(key) || "");
-      if (value && isImplausibleYear(value)) {
-        setMessage(IMPLAUSIBLE_YEAR_MESSAGE);
-        return;
-      }
+    const occurredOn = String(form.get("occurredOn") || "");
+    if (isImplausibleYear(occurredOn)) {
+      setMessage(IMPLAUSIBLE_YEAR_MESSAGE);
+      return;
     }
     setBusy(true);
     try {
-      const response = await fetch(`/api/sellers/${sellerId}/customer-records`, {
+      const response = await fetch(`/api/sellers/${sellerId}/sales-records`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           kind: formKind,
-          status: formStatus,
-          inquiredAt: form.get("inquiredAt"),
-          viewedAt: form.get("viewedAt"),
-          occurredAt: form.get("occurredAt"),
-          customerAlias: form.get("customerAlias"),
-          feedback: form.get("feedback"),
+          occurredOn,
+          groupCount: form.get("groupCount"),
+          summary: form.get("summary"),
           internalNote: form.get("internalNote"),
           photos: newPhotos,
           visibleToOwner: form.get("visibleToOwner") === "on"
@@ -117,8 +90,7 @@ export default function CustomerRecordsPanel({
       setRecords((current) => [payload.record, ...current]);
       setShowForm(false);
       setNewPhotos([]);
-      setFormKind("customer");
-      setFormStatus("inquiry");
+      setFormKind("viewing");
       (event.target as HTMLFormElement).reset();
     } catch (caught) {
       setMessage(caught instanceof Error ? caught.message : "新增失敗");
@@ -130,7 +102,7 @@ export default function CustomerRecordsPanel({
   async function patchRecord(recordId: string, patch: Record<string, unknown>) {
     setMessage("");
     try {
-      const response = await fetch(`/api/sellers/${sellerId}/customer-records/${recordId}`, {
+      const response = await fetch(`/api/sellers/${sellerId}/sales-records/${recordId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch)
@@ -146,9 +118,7 @@ export default function CustomerRecordsPanel({
   async function removeRecord(recordId: string) {
     setMessage("");
     try {
-      const response = await fetch(`/api/sellers/${sellerId}/customer-records/${recordId}`, {
-        method: "DELETE"
-      });
+      const response = await fetch(`/api/sellers/${sellerId}/sales-records/${recordId}`, { method: "DELETE" });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "刪除失敗");
       setRecords((current) => current.filter((r) => r.id !== recordId));
@@ -157,21 +127,17 @@ export default function CustomerRecordsPanel({
     }
   }
 
-  const trackingCount = records.filter(
-    (r) => r.kind === "customer" && (r.status === "tracking" || r.status === "appointed")
-  ).length;
-
   return (
     <section className="seller-panel">
       <div className="panel-head-row">
-        <h2>客戶／銷售紀錄</h2>
+        <h2>銷售紀錄</h2>
         <button className="button-secondary" onClick={() => setShowForm((v) => !v)} type="button">
           {showForm ? "取消" : "＋ 新增紀錄"}
         </button>
       </div>
       <p className="market-competitors-hint">
-        一位客戶一筆紀錄，狀態往前推進就好（詢問 → 追蹤中 → 已約帶看 → 實際帶看），不用每個階段開新的。
-        建立週報時會自動統計，不用再重打數字。目前追蹤中 {trackingCount} 位。
+        一天記一筆就好：日期 → 組數 → 回饋摘要。建立週報時會自動加總，不用再重打數字。
+        「已安排帶看」填的是預計看屋日期，等實際帶看記錄後會自動不再顯示給屋主。
       </p>
 
       {message ? <div className="form-error">{message}</div> : null}
@@ -180,59 +146,40 @@ export default function CustomerRecordsPanel({
         <form className="market-competitor-form" onSubmit={submitCreate}>
           <div className="field-grid">
             <div className="field">
-              <label htmlFor="kind">紀錄類型</label>
-              <select
-                id="kind"
-                onChange={(e) => setFormKind(e.target.value as CustomerRecordKind)}
-                value={formKind}
-              >
-                {CUSTOMER_RECORD_KINDS.map((k) => (
+              <label htmlFor="kind">類型</label>
+              <select id="kind" onChange={(e) => setFormKind(e.target.value as SalesRecordKind)} value={formKind}>
+                {SALES_RECORD_KINDS.map((k) => (
                   <option key={k.key} value={k.key}>{k.label}</option>
                 ))}
               </select>
             </div>
 
-            {formKind === "customer" ? (
-              <>
-                <div className="field">
-                  <label htmlFor="status">目前狀態</label>
-                  <select
-                    id="status"
-                    onChange={(e) => setFormStatus(e.target.value as CustomerRecordStatus)}
-                    value={formStatus}
-                  >
-                    {CUSTOMER_RECORD_STATUSES.map((s) => (
-                      <option key={s.key} value={s.key}>{s.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="field">
-                  <label htmlFor="inquiredAt">詢問日期</label>
-                  <input defaultValue={todayInput()} id="inquiredAt" name="inquiredAt" type="date" />
-                </div>
-                <div className="field">
-                  <label htmlFor="viewedAt">實際帶看日期（狀態到「實際帶看」才需要）</label>
-                  <input id="viewedAt" name="viewedAt" type="date" />
-                </div>
-                <div className="field">
-                  <label htmlFor="customerAlias">客戶簡稱（選填，屋主看不到）</label>
-                  <input id="customerAlias" name="customerAlias" placeholder="例如：陳小姐" />
-                </div>
-              </>
-            ) : (
+            <div className="field">
+              <label htmlFor="occurredOn">
+                {formKind === "appointment" ? "預計看屋日期" : "日期"}
+              </label>
+              <input defaultValue={today()} id="occurredOn" name="occurredOn" required type="date" />
+            </div>
+
+            {kindHasGroups(formKind) ? (
               <div className="field">
-                <label htmlFor="occurredAt">發生日期</label>
-                <input defaultValue={todayInput()} id="occurredAt" name="occurredAt" type="date" />
+                <label htmlFor="groupCount">組數</label>
+                <input defaultValue={1} id="groupCount" min={1} name="groupCount" type="number" />
               </div>
-            )}
+            ) : null}
 
             <div className="field full">
-              <label htmlFor="feedback">回饋內容（屋主看得到）</label>
-              <textarea id="feedback" name="feedback" placeholder="例如：客戶喜歡採光與格局，但認為屋況需要整理。" />
+              <label htmlFor="summary">回饋摘要（屋主看得到）</label>
+              <textarea
+                id="summary"
+                name="summary"
+                placeholder="例如：一組喜歡採光與格局，但認為需要整理；另一組目前主要考量總價。"
+              />
             </div>
+
             <div className="field full">
-              <label htmlFor="internalNote">內部備註（屋主絕對看不到）</label>
-              <textarea id="internalNote" name="internalNote" placeholder="例如：出價 1,550，可再談" />
+              <label htmlFor="internalNote">內部備註（選填，屋主絕對看不到）</label>
+              <input id="internalNote" name="internalNote" placeholder="例如：出價 1,550，可再談" />
             </div>
 
             <div className="field full">
@@ -279,7 +226,7 @@ export default function CustomerRecordsPanel({
 
             <div className="field full">
               <button className="button" disabled={busy} type="submit">
-                {busy ? "儲存中..." : "新增紀錄"}
+                {busy ? "儲存中..." : "儲存"}
               </button>
             </div>
           </div>
@@ -291,40 +238,30 @@ export default function CustomerRecordsPanel({
           {records.map((record) => (
             <div className="market-competitor-row" key={record.id}>
               <div className="market-competitor-main">
-                <span className="platform-tag">
-                  {CUSTOMER_RECORD_KINDS.find((k) => k.key === record.kind)?.label}
-                </span>
-                {record.customerAlias ? <strong>{record.customerAlias}</strong> : null}
-                <span className="market-select-title">{record.feedback || "（未填回饋）"}</span>
+                <span className="cap-tag">{kindLabel(record.kind)}</span>
+                <strong>{formatDate(record.occurredOn)}</strong>
+                {record.groupCount !== null ? <span>{record.groupCount} 組</span> : null}
+                <span className="market-select-title">{record.summary || "（未填摘要）"}</span>
+                {record.photos.length ? <span className="market-select-badge">📷 {record.photos.length}</span> : null}
                 {!record.visibleToOwner ? <span className="cap-tag">不給屋主看</span> : null}
               </div>
 
               <div className="market-competitor-controls">
-                {record.kind === "customer" ? (
-                  <>
-                    <select
-                      onChange={(e) => patchRecord(record.id, { status: e.target.value })}
-                      value={record.status}
-                    >
-                      {CUSTOMER_RECORD_STATUSES.map((s) => (
-                        <option key={s.key} value={s.key}>{s.label}</option>
-                      ))}
-                    </select>
-                    <label className="checkbox-inline">
-                      帶看日期
-                      <input
-                        defaultValue={toDateInput(record.viewedAt)}
-                        onBlur={(e) => {
-                          const next = e.target.value;
-                          if (next !== toDateInput(record.viewedAt)) patchRecord(record.id, { viewedAt: next });
-                        }}
-                        type="date"
-                      />
-                    </label>
-                  </>
-                ) : (
-                  <span className="market-competitor-tracked">{formatWhen(record.occurredAt)}</span>
-                )}
+                {kindHasGroups(record.kind) ? (
+                  <label className="checkbox-inline">
+                    組數
+                    <input
+                      defaultValue={record.groupCount ?? 1}
+                      min={1}
+                      onBlur={(e) => {
+                        const next = Number(e.target.value);
+                        if (next !== record.groupCount) patchRecord(record.id, { groupCount: next });
+                      }}
+                      style={{ width: 60 }}
+                      type="number"
+                    />
+                  </label>
+                ) : null}
 
                 <label className="checkbox-inline">
                   <input
@@ -347,7 +284,9 @@ export default function CustomerRecordsPanel({
           ))}
         </div>
       ) : (
-        <div className="empty-state">還沒有任何紀錄。客戶詢問、帶看、同業回饋都記在這裡，週報就會自動帶入。</div>
+        <div className="empty-state">
+          還沒有任何紀錄。帶看、詢問、同業回饋都記在這裡，建立週報時會自動帶入。
+        </div>
       )}
     </section>
   );

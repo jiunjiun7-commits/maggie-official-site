@@ -14,8 +14,7 @@ export type Seller = {
   address: string;
   internalNote: string;
   status: SellerStatus;
-  /** 導入系統前已累積的詢問／帶看數。自動統計＝這個基數＋系統裡的紀錄數，既有案件才不會回退成 0。 */
-  baselineInquiries: number;
+  /** 導入系統前已累積的帶看組數。累積帶看＝這個基數＋系統裡的紀錄加總，既有案件才不會回退成 0。 */
   baselineViewings: number;
   createdAt: string;
   updatedAt: string;
@@ -64,7 +63,6 @@ type SellerRow = {
   address: string;
   internal_note: string;
   status: SellerStatus;
-  baseline_inquiries: number;
   baseline_viewings: number;
   created_at: string;
   updated_at: string;
@@ -83,7 +81,6 @@ function fromRow(row: SellerRow): Seller {
     address: row.address,
     internalNote: row.internal_note,
     status: row.status,
-    baselineInquiries: row.baseline_inquiries ?? 0,
     baselineViewings: row.baseline_viewings ?? 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at
@@ -101,7 +98,6 @@ type SellerInput = {
   address: string;
   internalNote: string;
   status: SellerStatus;
-  baselineInquiries: number;
   baselineViewings: number;
 };
 
@@ -117,7 +113,6 @@ function toRow(input: Partial<SellerInput>) {
   if (input.address !== undefined) row.address = input.address;
   if (input.internalNote !== undefined) row.internal_note = input.internalNote;
   if (input.status !== undefined) row.status = input.status;
-  if (input.baselineInquiries !== undefined) row.baseline_inquiries = input.baselineInquiries;
   if (input.baselineViewings !== undefined) row.baseline_viewings = input.baselineViewings;
   return row;
 }

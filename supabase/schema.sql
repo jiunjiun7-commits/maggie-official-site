@@ -1151,50 +1151,35 @@ grant select, insert, update, delete on public.seller_market_competitor_history 
 alter table seller_reports add column if not exists market_competitor_snapshot jsonb not null default '{}';
 
 -- ==========================================================================
--- 屋主回報系統 V2：客戶／銷售紀錄
--- 一位客戶＝一筆紀錄，狀態往前推進（詢問→追蹤中→已約帶看→實際帶看／結束追蹤），
--- 不是每個階段開一筆新的——這是「同一件事只輸入一次」的關鍵。
--- 同業回饋／推廣紀錄／其他不是客戶，沒有狀態流程，只用 occurred_at 記發生時間。
---
--- customer_alias 與 internal_note 永遠不會進到週報快照，屋主端根本讀不到這兩欄，
--- 不是靠前端隱藏。
+-- 屋主回報系統 V2：銷售紀錄
+-- 一筆紀錄＝「某一天的一件事」，不是「一位客戶」。這個系統的核心是屋主週報，
+-- 不是買方 CRM，所以沒有客戶姓名、沒有狀態流程，只有「哪一天、幾組、回饋摘要」。
+-- internal_note 永遠不會進到週報快照，屋主端讀不到。
 -- ==========================================================================
 
-create table if not exists seller_customer_records (
+create table if not exists seller_sales_records (
   id uuid primary key default gen_random_uuid(),
   seller_id uuid not null references sellers(id) on delete cascade,
-  kind text not null default 'customer'
-    check (kind in ('customer', 'peer_feedback', 'promotion', 'other')),
-
-  -- 客戶類（kind='customer'）才用的狀態流程
-  status text not null default 'inquiry'
-    check (status in ('inquiry', 'tracking', 'appointed', 'viewed', 'closed')),
-  inquired_at timestamptz, -- 詢問時間
-  viewed_at timestamptz,   -- 實際帶看時間（狀態推進到 viewed 才填）
-
-  occurred_at timestamptz, -- 非客戶類（同業回饋／推廣紀錄／其他）的發生時間
-
-  customer_alias text not null default '', -- 客戶簡稱，選填，永不進 Portal
-  feedback text not null default '',       -- 可給屋主看的回饋
-  internal_note text not null default '',  -- 內部備註，永不進 Portal
-  photos jsonb not null default '[]',      -- [{url, caption}]，沿用 promotion_photos 的形狀與同一個 Storage bucket
+  kind text not null
+    check (kind in ('viewing', 'appointment', 'inquiry', 'peer_feedback', 'promotion', 'other')),
+  occurred_on date not null, -- 只有日期；'appointment' 存的是預計看屋日期
+  group_count int,           -- 帶看／詢問類的組數，其他類型為 null
+  summary text not null default '',       -- 給屋主看的回饋摘要
+  internal_note text not null default '', -- 內部備註，永不進 Portal
+  photos jsonb not null default '[]',     -- [{url, caption}]，沿用同一個 Storage bucket
   visible_to_owner boolean not null default true,
-
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
-create index if not exists seller_customer_records_seller_idx on seller_customer_records (seller_id);
-create index if not exists seller_customer_records_viewed_idx on seller_customer_records (seller_id, viewed_at desc);
+create index if not exists seller_sales_records_seller_idx on seller_sales_records (seller_id, occurred_on desc);
 
-alter table seller_customer_records enable row level security;
-grant select, insert, update, delete on public.seller_customer_records to service_role;
+alter table seller_sales_records enable row level security;
+grant select, insert, update, delete on public.seller_sales_records to service_role;
 
--- 週報快照：建立週報當下凍結，之後紀錄再怎麼改都不會回頭改到已建立的週報。
--- 舊週報沒有這個欄位的內容（預設 '{}'），Portal 會自動退回原本的 5 個數字顯示。
-alter table seller_reports add column if not exists customer_snapshot jsonb not null default '{}';
+-- 週報快照：建立週報當下凍結，之後紀錄再改都不會回頭改到已建立的週報。
+-- 舊週報沒有內容（預設 '{}'），Portal 會自動退回原本的 5 個數字顯示。
+alter table seller_reports add column if not exists sales_snapshot jsonb not null default '{}';
 
--- 期初累積值：導入系統前已經累積的詢問／帶看數。
--- 累積數＝這個基數＋系統裡的紀錄數，既有案件才不會一改成自動統計就回退成 0。
-alter table sellers add column if not exists baseline_inquiries int not null default 0;
+-- 期初累積值：導入系統前已累積的帶看組數。
 alter table sellers add column if not exists baseline_viewings int not null default 0;

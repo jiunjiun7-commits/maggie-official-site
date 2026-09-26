@@ -35,7 +35,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (typeof body.askingPrice === "string") input.askingPrice = body.askingPrice;
   if (typeof body.address === "string") input.address = body.address;
   if (typeof body.internalNote === "string") input.internalNote = body.internalNote;
-  if (body.baselineInquiries !== undefined) input.baselineInquiries = Number(body.baselineInquiries) || 0;
   if (body.baselineViewings !== undefined) input.baselineViewings = Number(body.baselineViewings) || 0;
   if (typeof body.status === "string") {
     if (!STATUS.includes(body.status as SellerStatus)) {

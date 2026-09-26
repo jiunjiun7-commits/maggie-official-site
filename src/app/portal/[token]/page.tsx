@@ -120,10 +120,10 @@ export default async function SellerPortalPage({ params }: { params: Promise<{ t
   );
 }
 
-/** ISO 時間 → 09/24，屋主端只需要看到月/日。 */
+/** YYYY-MM-DD → 09/24，屋主端只需要看到月/日。純字串處理，不經過時區換算。 */
 function formatMonthDay(value: string) {
   if (!value) return "—";
-  return new Date(value).toLocaleDateString("zh-TW", { month: "2-digit", day: "2-digit" });
+  return value.slice(5).replace("-", "/");
 }
 
 function activeDaysUntil(startedAt: string | undefined, periodEnd: string) {
@@ -216,32 +216,32 @@ function ReportBody({
         </div>
       ) : null}
 
-      {report.customerSnapshot.items.length || report.customerSnapshot.stats.viewingsWeek ? (
+      {report.salesSnapshot.items.length || report.salesSnapshot.stats.viewingGroups ? (
         <div className="portal-block">
           <h3>本週銷售進度</h3>
           <div className="portal-stat-row">
-            <div><span>{report.customerSnapshot.stats.inquiriesWeek}</span>本週詢問</div>
-            <div><span>{report.customerSnapshot.stats.tracking}</span>追蹤中</div>
-            <div><span>{report.customerSnapshot.stats.viewingsWeek}</span>實際帶看</div>
-            <div><span>{report.customerSnapshot.stats.viewingsTotal}</span>累積帶看</div>
+            <div><span>{report.salesSnapshot.stats.inquiryGroups}</span>本週詢問（組）</div>
+            <div><span>{report.salesSnapshot.stats.viewingGroups}</span>實際帶看（組）</div>
+            <div><span>{report.salesSnapshot.stats.viewingGroupsTotal}</span>累積帶看（組）</div>
           </div>
-          {report.customerSnapshot.items.length ? (
+          {report.salesSnapshot.items.length ? (
             <ul className="portal-activity-list">
-              {/* 依發生時間排序後再顯示——快照存進去的順序是建立紀錄的順序，
-                  對屋主來說應該是一條照時間走的時間軸，不是後台的輸入順序。
-                  在顯示時排序，既有的舊快照也會一併變整齊，不用回頭改資料。 */}
-              {[...report.customerSnapshot.items]
-                .sort((a, b) => (a.occurredAt || "").localeCompare(b.occurredAt || ""))
+              {/* 依日期排序，屋主看到的是一條照時間走的時間軸，不是後台的輸入順序。 */}
+              {[...report.salesSnapshot.items]
+                .sort((a, b) => a.occurredOn.localeCompare(b.occurredOn))
                 .map((item) => (
-                <li key={item.recordId}>
-                  <div className="portal-activity-head">
-                    <strong>{formatMonthDay(item.occurredAt)}｜{item.label}</strong>
-                    {item.photos.length ? <span aria-label="有照片" role="img">📷</span> : null}
-                  </div>
-                  {item.feedback ? <p>{item.feedback}</p> : null}
-                  {item.photos.length ? <PromotionPhotoGallery photos={item.photos} /> : null}
-                </li>
-              ))}
+                  <li key={item.recordId}>
+                    <div className="portal-activity-head">
+                      <strong>
+                        {formatMonthDay(item.occurredOn)}｜{item.label}
+                        {item.groupCount !== null ? ` ${item.groupCount} 組` : ""}
+                      </strong>
+                      {item.photos.length ? <span aria-label="有照片" role="img">📷</span> : null}
+                    </div>
+                    {item.summary ? <p>{item.summary}</p> : null}
+                    {item.photos.length ? <PromotionPhotoGallery photos={item.photos} /> : null}
+                  </li>
+                ))}
             </ul>
           ) : null}
         </div>

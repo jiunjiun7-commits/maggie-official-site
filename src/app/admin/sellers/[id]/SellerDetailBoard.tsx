@@ -5,11 +5,11 @@ import type { Seller, SellerStatus } from "@/lib/seller-store";
 import type { SellerReport } from "@/lib/seller-report-store";
 import type { ExposureLink } from "@/lib/seller-exposure-store";
 import type { MarketCompetitor } from "@/lib/seller-market-store";
-import type { CustomerRecord } from "@/lib/seller-customer-store";
+import type { SalesRecord } from "@/lib/seller-sales-store";
 import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
 import ExposureLinksPanel from "./ExposureLinksPanel";
 import MarketCompetitorsPanel from "./MarketCompetitorsPanel";
-import CustomerRecordsPanel from "./CustomerRecordsPanel";
+import SalesRecordsPanel from "./SalesRecordsPanel";
 
 const STATUS_LABEL: Record<SellerStatus, string> = {
   active: "服務中",
@@ -27,14 +27,14 @@ export default function SellerDetailBoard({
   initialHasToken,
   initialExposureLinks,
   initialMarketCompetitors,
-  initialCustomerRecords
+  initialSalesRecords
 }: {
   initialSeller: Seller;
   initialReports: SellerReport[];
   initialHasToken: boolean;
   initialExposureLinks: ExposureLink[];
   initialMarketCompetitors: MarketCompetitor[];
-  initialCustomerRecords: CustomerRecord[];
+  initialSalesRecords: SalesRecord[];
 }) {
   const [seller, setSeller] = useState(initialSeller);
   const [reports] = useState(initialReports);
@@ -148,7 +148,7 @@ export default function SellerDetailBoard({
             )}
           </section>
 
-          <CustomerRecordsPanel initialRecords={initialCustomerRecords} sellerId={seller.id} />
+          <SalesRecordsPanel initialRecords={initialSalesRecords} sellerId={seller.id} />
 
           <ExposureLinksPanel initialLinks={initialExposureLinks} sellerId={seller.id} />
 

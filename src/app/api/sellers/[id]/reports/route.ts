@@ -29,21 +29,22 @@ function parseInput(body: Record<string, unknown>): SellerReportInput | null {
     return Number.isFinite(n) ? n : null;
   };
 
-  const customerSnapshot = (body.customerSnapshot as SellerReportInput["customerSnapshot"]) || {
-    stats: { inquiriesWeek: 0, tracking: 0, viewingsWeek: 0, inquiriesTotal: 0, viewingsTotal: 0 },
+  const salesSnapshot = (body.salesSnapshot as SellerReportInput["salesSnapshot"]) || {
+    stats: { inquiryGroups: 0, viewingGroups: 0, viewingGroupsTotal: 0 },
     items: []
   };
 
   // V2 之後這五個舊欄位不再由人工輸入，改由客戶紀錄的統計推導。
   // 在伺服器端推導而不是靠前端送上來，任何呼叫端（表單、腳本、之後的自動化）
   // 建立的週報都會保持一致，不會出現快照有數字、舊欄位卻是 0 的情況。
-  const st = customerSnapshot.stats;
+  const st = salesSnapshot.stats;
   const derived = {
-    inquiriesWeek: body.inquiriesWeek !== undefined ? num(body.inquiriesWeek) : st.inquiriesWeek,
-    inquiriesTotal: body.inquiriesTotal !== undefined ? num(body.inquiriesTotal) : st.inquiriesTotal,
-    viewingsWeek: body.viewingsWeek !== undefined ? num(body.viewingsWeek) : st.viewingsWeek,
-    viewingsTotal: body.viewingsTotal !== undefined ? num(body.viewingsTotal) : st.viewingsTotal,
-    viewingsPending: body.viewingsPending !== undefined ? num(body.viewingsPending) : st.tracking
+    inquiriesWeek: body.inquiriesWeek !== undefined ? num(body.inquiriesWeek) : st.inquiryGroups,
+    inquiriesTotal: body.inquiriesTotal !== undefined ? num(body.inquiriesTotal) : 0,
+    viewingsWeek: body.viewingsWeek !== undefined ? num(body.viewingsWeek) : st.viewingGroups,
+    viewingsTotal: body.viewingsTotal !== undefined ? num(body.viewingsTotal) : st.viewingGroupsTotal,
+    // 「待安排帶看」這個舊欄位在 V2 沒有對應概念（追蹤中已確認不做），保留欄位但不再填數字。
+    viewingsPending: body.viewingsPending !== undefined ? num(body.viewingsPending) : 0
   };
 
   return {
@@ -74,7 +75,7 @@ function parseInput(body: Record<string, unknown>): SellerReportInput | null {
       stats: { available: 0, newThisWeek: 0, priceCutThisWeek: 0, soldThisWeek: 0 },
       items: []
     },
-    customerSnapshot
+    salesSnapshot
   };
 }
 

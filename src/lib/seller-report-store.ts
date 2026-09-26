@@ -169,13 +169,10 @@ function emptyMarketCompetitorSnapshot(): MarketCompetitorSnapshot {
  * 客戶／銷售紀錄在建立週報當下凍結的快照。型別定義在 seller-customer-store.ts，
  * 這裡只 re-export 出來給週報相關的程式碼用，避免兩邊各自定義一份走鐘。
  */
-export type { CustomerSnapshot, CustomerSnapshotItem, CustomerStats } from "@/lib/seller-customer-store";
+export type { SalesSnapshot, SalesSnapshotItem, SalesStats } from "@/lib/seller-sales-store";
 
-function emptyCustomerSnapshot(): import("@/lib/seller-customer-store").CustomerSnapshot {
-  return {
-    stats: { inquiriesWeek: 0, tracking: 0, viewingsWeek: 0, inquiriesTotal: 0, viewingsTotal: 0 },
-    items: []
-  };
+function emptySalesSnapshot(): import("@/lib/seller-sales-store").SalesSnapshot {
+  return { stats: { inquiryGroups: 0, viewingGroups: 0, viewingGroupsTotal: 0 }, items: [] };
 }
 
 export const STRATEGY_CHECKLIST_OPTIONS = [
@@ -212,7 +209,7 @@ export type SellerReport = {
   ownerActionNeeded: string;
   promotionPhotos: PromotionPhoto[];
   marketCompetitorSnapshot: MarketCompetitorSnapshot;
-  customerSnapshot: import("@/lib/seller-customer-store").CustomerSnapshot;
+  salesSnapshot: import("@/lib/seller-sales-store").SalesSnapshot;
   createdAt: string;
 };
 
@@ -242,7 +239,7 @@ export type SellerReportRow = {
   owner_action_needed: string;
   promotion_photos: PromotionPhoto[];
   market_competitor_snapshot: MarketCompetitorSnapshot;
-  customer_snapshot: import("@/lib/seller-customer-store").CustomerSnapshot;
+  sales_snapshot: import("@/lib/seller-sales-store").SalesSnapshot;
   created_at: string;
 };
 
@@ -278,9 +275,7 @@ function fromRow(row: SellerReportRow): SellerReport {
       : emptyMarketCompetitorSnapshot(),
     // 同上：舊週報的欄位預設是 '{}'，沒有 items 陣列，一定要檢查過才能當快照用，
     // Portal 才判斷得出「這筆週報有沒有 V2 的銷售紀錄」而正確退回舊版顯示。
-    customerSnapshot: Array.isArray(row.customer_snapshot?.items)
-      ? row.customer_snapshot
-      : emptyCustomerSnapshot(),
+    salesSnapshot: Array.isArray(row.sales_snapshot?.items) ? row.sales_snapshot : emptySalesSnapshot(),
     createdAt: row.created_at
   };
 }
@@ -308,7 +303,7 @@ export type SellerReportInput = {
   ownerActionNeeded: string;
   promotionPhotos: PromotionPhoto[];
   marketCompetitorSnapshot: MarketCompetitorSnapshot;
-  customerSnapshot: import("@/lib/seller-customer-store").CustomerSnapshot;
+  salesSnapshot: import("@/lib/seller-sales-store").SalesSnapshot;
 };
 
 function toRow(input: Partial<SellerReportInput>) {
@@ -338,7 +333,7 @@ function toRow(input: Partial<SellerReportInput>) {
     row.promotion_photos = input.promotionPhotos.slice(0, MAX_PROMOTION_PHOTOS);
   }
   if (input.marketCompetitorSnapshot !== undefined) row.market_competitor_snapshot = input.marketCompetitorSnapshot;
-  if (input.customerSnapshot !== undefined) row.customer_snapshot = input.customerSnapshot;
+  if (input.salesSnapshot !== undefined) row.sales_snapshot = input.salesSnapshot;
   return row;
 }
 
@@ -386,7 +381,7 @@ const PORTAL_REPORT_COLUMNS = [
   "owner_action_needed",
   "promotion_photos",
   "market_competitor_snapshot",
-  "customer_snapshot",
+  "sales_snapshot",
   "created_at"
 ].join(", ");
 

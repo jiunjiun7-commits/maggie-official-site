@@ -5,7 +5,7 @@ import { listSellerReports } from "@/lib/seller-report-store";
 import { hasActiveSellerToken } from "@/lib/seller-portal";
 import { listExposureLinks } from "@/lib/seller-exposure-store";
 import { listMarketCompetitors } from "@/lib/seller-market-store";
-import { listCustomerRecords } from "@/lib/seller-customer-store";
+import { listSalesRecords } from "@/lib/seller-sales-store";
 import SellerDetailBoard from "./SellerDetailBoard";
 import "../../login/login.css";
 import "../sellers.css";
@@ -17,12 +17,12 @@ export default async function SellerDetailPage({ params }: { params: Promise<{ i
   const seller = await getSeller(id);
   if (!seller) notFound();
 
-  const [reports, hasToken, exposureLinks, marketCompetitors, customerRecords] = await Promise.all([
+  const [reports, hasToken, exposureLinks, marketCompetitors, salesRecords] = await Promise.all([
     listSellerReports(id),
     hasActiveSellerToken(id),
     listExposureLinks(id),
     listMarketCompetitors(id),
-    listCustomerRecords(id)
+    listSalesRecords(id)
   ]);
 
   return (
@@ -31,7 +31,7 @@ export default async function SellerDetailPage({ params }: { params: Promise<{ i
       <SellerDetailBoard
         initialExposureLinks={exposureLinks}
         initialHasToken={hasToken}
-        initialCustomerRecords={customerRecords}
+        initialSalesRecords={salesRecords}
         initialMarketCompetitors={marketCompetitors}
         initialReports={reports}
         initialSeller={seller}

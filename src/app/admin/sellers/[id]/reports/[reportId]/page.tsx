@@ -11,7 +11,7 @@ import {
 } from "@/lib/seller-report-store";
 import { buildExposureAutoSnapshot, listExposureLinks } from "@/lib/seller-exposure-store";
 import { buildMarketSnapshot } from "@/lib/seller-market-store";
-import { buildCustomerSnapshot } from "@/lib/seller-customer-store";
+import { buildSalesSnapshot } from "@/lib/seller-sales-store";
 import ReportForm from "../ReportForm";
 import "../../../../login/login.css";
 import "../../../sellers.css";
@@ -52,13 +52,13 @@ export default async function EditSellerReportPage({
     report.periodEnd
   );
 
-  // 編輯既有週報時用這份報告真正的週期重算客戶統計；預設勾選會把當初存進快照的也一併勾回來
+  // 編輯既有週報時用這份報告真正的週期重算銷售統計；預設勾選會把當初存進快照的也一併勾回來
   // （見 ReportForm.tsx 的 selectedRecordIds 初始化），不會因為重算而讓原本選的掉勾。
-  const { stats: customerStats, records: customerRecords } = await buildCustomerSnapshot(
+  const { stats: salesStats, records: salesRecords } = await buildSalesSnapshot(
     id,
     report.periodStart,
     report.periodEnd,
-    { inquiries: seller.baselineInquiries, viewings: seller.baselineViewings }
+    { viewings: seller.baselineViewings }
   );
 
   return (
@@ -77,8 +77,8 @@ export default async function EditSellerReportPage({
           autoSnapshots={refreshedAutoSnapshots}
           exposureLinks={exposureLinks}
           initialReport={report}
-          customerRecords={customerRecords}
-          customerStats={customerStats}
+          salesRecords={salesRecords}
+          salesStats={salesStats}
           marketCompetitors={marketCompetitors}
           marketStats={marketStats}
           sellerId={seller.id}
