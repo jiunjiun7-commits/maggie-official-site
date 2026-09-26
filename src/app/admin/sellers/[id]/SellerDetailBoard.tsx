@@ -6,10 +6,41 @@ import type { SellerReport } from "@/lib/seller-report-store";
 import type { ExposureLink } from "@/lib/seller-exposure-store";
 import type { MarketCompetitor } from "@/lib/seller-market-store";
 import type { SalesRecord } from "@/lib/seller-sales-store";
+import { openedAfter } from "@/lib/seller-portal-views";
 import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
 import ExposureLinksPanel from "./ExposureLinksPanel";
 import MarketCompetitorsPanel from "./MarketCompetitorsPanel";
 import SalesRecordsPanel from "./SalesRecordsPanel";
+
+function formatOpenedAt(value: string) {
+  return new Date(value).toLocaleString("zh-TW", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+/**
+ * 屋主有沒有在這份週報發布之後開啟過專屬連結。
+ *
+ * 只能證明「開啟過連結」，不能證明他把這份週報讀完了，所以文案寫「已開啟」
+ * 而不是「已讀」——不要給出比實際更強的保證。
+ */
+function ReadLight({ openedAt }: { openedAt: string | null }) {
+  if (!openedAt) {
+    return (
+      <span className="read-light read-light--unread" title="屋主還沒有在這份週報發布後開啟過連結">
+        <span className="read-light__dot" />尚未開啟
+      </span>
+    );
+  }
+  return (
+    <span className="read-light read-light--read" title={`屋主最後開啟時間：${formatOpenedAt(openedAt)}`}>
+      <span className="read-light__dot" />已開啟 {formatOpenedAt(openedAt)}
+    </span>
+  );
+}
 
 const STATUS_LABEL: Record<SellerStatus, string> = {
   active: "服務中",
@@ -27,7 +58,8 @@ export default function SellerDetailBoard({
   initialHasToken,
   initialExposureLinks,
   initialMarketCompetitors,
-  initialSalesRecords
+  initialSalesRecords,
+  portalViews
 }: {
   initialSeller: Seller;
   initialReports: SellerReport[];
@@ -35,6 +67,8 @@ export default function SellerDetailBoard({
   initialExposureLinks: ExposureLink[];
   initialMarketCompetitors: MarketCompetitor[];
   initialSalesRecords: SalesRecord[];
+  /** 屋主開啟專屬連結的時間（新的在前），用來判斷每份週報的已開啟燈號。 */
+  portalViews: string[];
 }) {
   const [seller, setSeller] = useState(initialSeller);
   const [reports] = useState(initialReports);
@@ -140,6 +174,7 @@ export default function SellerDetailBoard({
                     <span className="report-row-period">
                       {formatDate(report.periodStart)} ～ {formatDate(report.periodEnd)}
                     </span>
+                    <ReadLight openedAt={openedAfter(portalViews, report.createdAt)} />
                   </a>
                 ))}
               </div>

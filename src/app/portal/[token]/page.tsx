@@ -11,6 +11,7 @@ import {
 } from "@/lib/seller-report-store";
 import { listExposureLinks } from "@/lib/seller-exposure-store";
 import PromotionPhotoGallery from "./PromotionPhotoGallery";
+import ViewBeacon from "./ViewBeacon";
 import "./portal.css";
 
 export const dynamic = "force-dynamic";
@@ -76,6 +77,7 @@ export default async function SellerPortalPage({ params }: { params: Promise<{ t
 
   return (
     <div className="portal-page">
+      <ViewBeacon token={token} />
       <div className="portal-shell">
         <header className="portal-header">
           <div className="portal-header-top">
