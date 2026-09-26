@@ -524,7 +524,8 @@ export default function ReportForm({
               勾選要放進這份週報的紀錄——本週的已預設打勾。客戶詢問只計入上面的統計、不逐筆列給屋主看；
               「已安排帶看」等實際帶看記錄後會自動不再顯示。內部備註永遠不會進到屋主端。
             </p>
-            {salesRecords
+            {[...salesRecords]
+              .sort((a, b) => b.occurredOn.localeCompare(a.occurredOn))
               .filter((record) => record.visibleToOwner && isListableForOwner(record))
               .map((record) => {
                 const superseded =

@@ -235,7 +235,11 @@ export default function SalesRecordsPanel({
 
       {records.length ? (
         <div className="market-competitor-list">
-          {records.map((record) => (
+          {/* 一律依日期排序（新的在上、舊的在下），不用管是什麼時候按新增的——
+              否則當下新增的那筆會插在最前面，跟已經在列表上的日期對不起來。 */}
+          {[...records]
+            .sort((a, b) => b.occurredOn.localeCompare(a.occurredOn))
+            .map((record) => (
             <div className="market-competitor-row" key={record.id}>
               <div className="market-competitor-main">
                 <span className="cap-tag">{kindLabel(record.kind)}</span>
@@ -281,7 +285,7 @@ export default function SalesRecordsPanel({
                 <div className="side-panel-note">內部備註：{record.internalNote}</div>
               ) : null}
             </div>
-          ))}
+            ))}
         </div>
       ) : (
         <div className="empty-state">
