@@ -227,7 +227,12 @@ function ReportBody({
           </div>
           {report.customerSnapshot.items.length ? (
             <ul className="portal-activity-list">
-              {report.customerSnapshot.items.map((item) => (
+              {/* 依發生時間排序後再顯示——快照存進去的順序是建立紀錄的順序，
+                  對屋主來說應該是一條照時間走的時間軸，不是後台的輸入順序。
+                  在顯示時排序，既有的舊快照也會一併變整齊，不用回頭改資料。 */}
+              {[...report.customerSnapshot.items]
+                .sort((a, b) => (a.occurredAt || "").localeCompare(b.occurredAt || ""))
+                .map((item) => (
                 <li key={item.recordId}>
                   <div className="portal-activity-head">
                     <strong>{formatMonthDay(item.occurredAt)}｜{item.label}</strong>
