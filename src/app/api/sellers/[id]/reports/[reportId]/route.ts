@@ -57,6 +57,9 @@ function parsePartialInput(body: Record<string, unknown>): Partial<SellerReportI
   if (body.marketCompetitorSnapshot !== undefined) {
     input.marketCompetitorSnapshot = body.marketCompetitorSnapshot as SellerReportInput["marketCompetitorSnapshot"];
   }
+  if (body.customerSnapshot !== undefined) {
+    input.customerSnapshot = body.customerSnapshot as SellerReportInput["customerSnapshot"];
+  }
 
   return input;
 }

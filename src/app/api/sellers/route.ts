@@ -39,7 +39,9 @@ export async function POST(request: Request) {
     askingPrice: String(body.askingPrice || ""),
     address: String(body.address || ""),
     internalNote: String(body.internalNote || ""),
-    status
+    status,
+    baselineInquiries: Number(body.baselineInquiries) || 0,
+    baselineViewings: Number(body.baselineViewings) || 0
   });
 
   return NextResponse.json({ ok: true, seller });

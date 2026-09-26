@@ -120,6 +120,12 @@ export default async function SellerPortalPage({ params }: { params: Promise<{ t
   );
 }
 
+/** ISO 時間 → 09/24，屋主端只需要看到月/日。 */
+function formatMonthDay(value: string) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("zh-TW", { month: "2-digit", day: "2-digit" });
+}
+
 function activeDaysUntil(startedAt: string | undefined, periodEnd: string) {
   if (!startedAt) return null;
   const days = Math.floor((new Date(periodEnd).getTime() - new Date(startedAt).getTime()) / 86_400_000);
@@ -210,16 +216,42 @@ function ReportBody({
         </div>
       ) : null}
 
-      <div className="portal-block">
-        <h3>本週詢問／帶看</h3>
-        <div className="portal-stat-row">
-          <div><span>{report.inquiriesWeek}</span>本週詢問</div>
-          <div><span>{report.inquiriesTotal}</span>累積詢問</div>
-          <div><span>{report.viewingsWeek}</span>本週帶看</div>
-          <div><span>{report.viewingsTotal}</span>累積帶看</div>
-          <div><span>{report.viewingsPending}</span>待安排帶看</div>
+      {report.customerSnapshot.items.length || report.customerSnapshot.stats.viewingsWeek ? (
+        <div className="portal-block">
+          <h3>本週銷售進度</h3>
+          <div className="portal-stat-row">
+            <div><span>{report.customerSnapshot.stats.inquiriesWeek}</span>本週詢問</div>
+            <div><span>{report.customerSnapshot.stats.tracking}</span>追蹤中</div>
+            <div><span>{report.customerSnapshot.stats.viewingsWeek}</span>實際帶看</div>
+            <div><span>{report.customerSnapshot.stats.viewingsTotal}</span>累積帶看</div>
+          </div>
+          {report.customerSnapshot.items.length ? (
+            <ul className="portal-activity-list">
+              {report.customerSnapshot.items.map((item) => (
+                <li key={item.recordId}>
+                  <div className="portal-activity-head">
+                    <strong>{formatMonthDay(item.occurredAt)}｜{item.label}</strong>
+                    {item.photos.length ? <span aria-label="有照片" role="img">📷</span> : null}
+                  </div>
+                  {item.feedback ? <p>{item.feedback}</p> : null}
+                  {item.photos.length ? <PromotionPhotoGallery photos={item.photos} /> : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
-      </div>
+      ) : (
+        <div className="portal-block">
+          <h3>本週詢問／帶看</h3>
+          <div className="portal-stat-row">
+            <div><span>{report.inquiriesWeek}</span>本週詢問</div>
+            <div><span>{report.inquiriesTotal}</span>累積詢問</div>
+            <div><span>{report.viewingsWeek}</span>本週帶看</div>
+            <div><span>{report.viewingsTotal}</span>累積帶看</div>
+            <div><span>{report.viewingsPending}</span>待安排帶看</div>
+          </div>
+        </div>
+      )}
 
       {report.feedbackText ? (
         <div className="portal-block">

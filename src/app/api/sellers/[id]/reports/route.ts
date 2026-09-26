@@ -56,6 +56,10 @@ function parseInput(body: Record<string, unknown>): SellerReportInput | null {
     marketCompetitorSnapshot: (body.marketCompetitorSnapshot as SellerReportInput["marketCompetitorSnapshot"]) || {
       stats: { available: 0, newThisWeek: 0, priceCutThisWeek: 0, soldThisWeek: 0 },
       items: []
+    },
+    customerSnapshot: (body.customerSnapshot as SellerReportInput["customerSnapshot"]) || {
+      stats: { inquiriesWeek: 0, tracking: 0, viewingsWeek: 0, inquiriesTotal: 0, viewingsTotal: 0 },
+      items: []
     }
   };
 }

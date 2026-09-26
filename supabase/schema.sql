@@ -1149,3 +1149,52 @@ grant select, insert, update, delete on public.seller_market_competitor_history 
 -- 舊的 4 個手動數字欄位（market_listings_count 等）保留不動，既有歷史週報維持原本顯示；
 -- 新週報改寫進這個 jsonb 快照欄位，Portal 端會判斷「有新欄位就用新版，沒有就退回舊版」。
 alter table seller_reports add column if not exists market_competitor_snapshot jsonb not null default '{}';
+
+-- ==========================================================================
+-- 屋主回報系統 V2：客戶／銷售紀錄
+-- 一位客戶＝一筆紀錄，狀態往前推進（詢問→追蹤中→已約帶看→實際帶看／結束追蹤），
+-- 不是每個階段開一筆新的——這是「同一件事只輸入一次」的關鍵。
+-- 同業回饋／推廣紀錄／其他不是客戶，沒有狀態流程，只用 occurred_at 記發生時間。
+--
+-- customer_alias 與 internal_note 永遠不會進到週報快照，屋主端根本讀不到這兩欄，
+-- 不是靠前端隱藏。
+-- ==========================================================================
+
+create table if not exists seller_customer_records (
+  id uuid primary key default gen_random_uuid(),
+  seller_id uuid not null references sellers(id) on delete cascade,
+  kind text not null default 'customer'
+    check (kind in ('customer', 'peer_feedback', 'promotion', 'other')),
+
+  -- 客戶類（kind='customer'）才用的狀態流程
+  status text not null default 'inquiry'
+    check (status in ('inquiry', 'tracking', 'appointed', 'viewed', 'closed')),
+  inquired_at timestamptz, -- 詢問時間
+  viewed_at timestamptz,   -- 實際帶看時間（狀態推進到 viewed 才填）
+
+  occurred_at timestamptz, -- 非客戶類（同業回饋／推廣紀錄／其他）的發生時間
+
+  customer_alias text not null default '', -- 客戶簡稱，選填，永不進 Portal
+  feedback text not null default '',       -- 可給屋主看的回饋
+  internal_note text not null default '',  -- 內部備註，永不進 Portal
+  photos jsonb not null default '[]',      -- [{url, caption}]，沿用 promotion_photos 的形狀與同一個 Storage bucket
+  visible_to_owner boolean not null default true,
+
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists seller_customer_records_seller_idx on seller_customer_records (seller_id);
+create index if not exists seller_customer_records_viewed_idx on seller_customer_records (seller_id, viewed_at desc);
+
+alter table seller_customer_records enable row level security;
+grant select, insert, update, delete on public.seller_customer_records to service_role;
+
+-- 週報快照：建立週報當下凍結，之後紀錄再怎麼改都不會回頭改到已建立的週報。
+-- 舊週報沒有這個欄位的內容（預設 '{}'），Portal 會自動退回原本的 5 個數字顯示。
+alter table seller_reports add column if not exists customer_snapshot jsonb not null default '{}';
+
+-- 期初累積值：導入系統前已經累積的詢問／帶看數。
+-- 累積數＝這個基數＋系統裡的紀錄數，既有案件才不會一改成自動統計就回退成 0。
+alter table sellers add column if not exists baseline_inquiries int not null default 0;
+alter table sellers add column if not exists baseline_viewings int not null default 0;

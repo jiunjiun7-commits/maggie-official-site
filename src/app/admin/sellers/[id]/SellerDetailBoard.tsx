@@ -5,9 +5,11 @@ import type { Seller, SellerStatus } from "@/lib/seller-store";
 import type { SellerReport } from "@/lib/seller-report-store";
 import type { ExposureLink } from "@/lib/seller-exposure-store";
 import type { MarketCompetitor } from "@/lib/seller-market-store";
+import type { CustomerRecord } from "@/lib/seller-customer-store";
 import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
 import ExposureLinksPanel from "./ExposureLinksPanel";
 import MarketCompetitorsPanel from "./MarketCompetitorsPanel";
+import CustomerRecordsPanel from "./CustomerRecordsPanel";
 
 const STATUS_LABEL: Record<SellerStatus, string> = {
   active: "服務中",
@@ -24,13 +26,15 @@ export default function SellerDetailBoard({
   initialReports,
   initialHasToken,
   initialExposureLinks,
-  initialMarketCompetitors
+  initialMarketCompetitors,
+  initialCustomerRecords
 }: {
   initialSeller: Seller;
   initialReports: SellerReport[];
   initialHasToken: boolean;
   initialExposureLinks: ExposureLink[];
   initialMarketCompetitors: MarketCompetitor[];
+  initialCustomerRecords: CustomerRecord[];
 }) {
   const [seller, setSeller] = useState(initialSeller);
   const [reports] = useState(initialReports);
@@ -143,6 +147,8 @@ export default function SellerDetailBoard({
               <div className="empty-state">還沒有任何週報，按右上角「＋ 新增週報」建立第一筆。</div>
             )}
           </section>
+
+          <CustomerRecordsPanel initialRecords={initialCustomerRecords} sellerId={seller.id} />
 
           <ExposureLinksPanel initialLinks={initialExposureLinks} sellerId={seller.id} />
 

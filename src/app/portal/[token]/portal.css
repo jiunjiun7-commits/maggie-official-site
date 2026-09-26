@@ -387,3 +387,37 @@
   font-size: 16px;
   cursor: pointer;
 }
+
+/* --- 本週銷售進度：逐筆帶看／回饋 --- */
+
+.portal-activity-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.portal-activity-list li {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.portal-activity-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.portal-activity-list p {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.portal-activity-list p:last-child {
+  margin-bottom: 0;
+}

@@ -21,6 +21,14 @@ import {
 } from "@/lib/seller-report-store";
 import type { ExposureLink } from "@/lib/seller-exposure-store";
 import type { MarketCompetitorWithChange, MarketStats } from "@/lib/seller-market-store";
+import {
+  isRecordInPeriod,
+  recordLabel,
+  recordTimestamp,
+  toSnapshotItem,
+  type CustomerRecord,
+  type CustomerStats
+} from "@/lib/seller-customer-store";
 import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
 
 const MARKET_BADGE_LABEL: Record<string, string> = {
@@ -76,7 +84,9 @@ export default function ReportForm({
   exposureLinks,
   autoSnapshots,
   marketCompetitors,
-  marketStats
+  marketStats,
+  customerRecords,
+  customerStats
 }: {
   sellerId: string;
   initialReport?: SellerReport;
@@ -93,6 +103,10 @@ export default function ReportForm({
   /** 案件目前追蹤中的競品清單，附上「這個報告週期內有沒有變化」的旗標，用來決定預設勾選跟徽章文字。 */
   marketCompetitors: MarketCompetitorWithChange[];
   marketStats: MarketStats;
+  /** 案件目前所有的客戶／銷售紀錄，用來決定週報要放哪幾筆。 */
+  customerRecords: CustomerRecord[];
+  /** 依這份週報的週期自動算出來的統計數字，使用者不用再手動輸入。 */
+  customerStats: CustomerStats;
 }) {
   const [reportDate, setReportDate] = useState(initialReport?.reportDate ?? "");
   const [periodStart, setPeriodStart] = useState(initialReport?.periodStart ?? "");
@@ -118,11 +132,32 @@ export default function ReportForm({
     }
     return base;
   });
-  const [inquiriesWeek, setInquiriesWeek] = useState(String(initialReport?.inquiriesWeek ?? 0));
-  const [inquiriesTotal, setInquiriesTotal] = useState(String(initialReport?.inquiriesTotal ?? 0));
-  const [viewingsWeek, setViewingsWeek] = useState(String(initialReport?.viewingsWeek ?? 0));
-  const [viewingsTotal, setViewingsTotal] = useState(String(initialReport?.viewingsTotal ?? 0));
-  const [viewingsPending, setViewingsPending] = useState(String(initialReport?.viewingsPending ?? 0));
+  const [selectedRecordIds, setSelectedRecordIds] = useState<Set<string>>(() => {
+    // 落在這個週期內、而且允許給屋主看的紀錄預設勾選；編輯既有週報時，
+    // 當初存進快照的那些也一併勾回來，不會因為重算而讓她原本選的掉勾。
+    const previouslySaved = new Set((initialReport?.customerSnapshot?.items ?? []).map((i) => i.recordId));
+    const periodStart = initialReport?.periodStart ?? "";
+    const periodEnd = initialReport?.periodEnd ?? "";
+    return new Set(
+      customerRecords
+        .filter((r) => {
+          if (previouslySaved.has(r.id)) return true;
+          if (!r.visibleToOwner) return false;
+          if (!periodStart || !periodEnd) return false;
+          return isRecordInPeriod(r, periodStart, periodEnd);
+        })
+        .map((r) => r.id)
+    );
+  });
+
+  function toggleRecordSelection(id: string) {
+    setSelectedRecordIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
   const [feedbackText, setFeedbackText] = useState(initialReport?.feedbackText ?? "");
   const [marketObservationText, setMarketObservationText] = useState(initialReport?.marketObservationText ?? "");
   const [selectedCompetitorIds, setSelectedCompetitorIds] = useState<Set<string>>(() => {
@@ -235,11 +270,13 @@ export default function ReportForm({
       periodStart,
       periodEnd,
       exposure,
-      inquiriesWeek: Number(inquiriesWeek) || 0,
-      inquiriesTotal: Number(inquiriesTotal) || 0,
-      viewingsWeek: Number(viewingsWeek) || 0,
-      viewingsTotal: Number(viewingsTotal) || 0,
-      viewingsPending: Number(viewingsPending) || 0,
+// 這五個舊欄位不再讓使用者手填，改用自動統計回填，
+      // 任何還在讀舊欄位的地方（例如舊週報的顯示邏輯）都不會壞。
+      inquiriesWeek: customerStats.inquiriesWeek,
+      inquiriesTotal: customerStats.inquiriesTotal,
+      viewingsWeek: customerStats.viewingsWeek,
+      viewingsTotal: customerStats.viewingsTotal,
+      viewingsPending: customerStats.tracking,
       feedbackText,
       // 舊的 4 個手動數字欄位不再讓她自己填，改用新的競品追蹤統計數字回填，維持欄位有值、不留 null；
       // Portal 顯示則是看 marketCompetitorSnapshot 有沒有值來決定用新版還是舊版畫面。
@@ -254,6 +291,12 @@ export default function ReportForm({
       weeklyGoal,
       ownerActionNeeded,
       promotionPhotos: photos,
+      customerSnapshot: {
+        stats: customerStats,
+        items: customerRecords
+          .filter((r) => selectedRecordIds.has(r.id) && r.visibleToOwner)
+          .map(toSnapshotItem)
+      },
       marketCompetitorSnapshot: {
         stats: marketStats,
         items: marketCompetitors
@@ -434,29 +477,46 @@ export default function ReportForm({
       </section>
 
       <section className="seller-panel">
-        <h2>市場反應</h2>
-        <div className="field-grid">
-          <div className="field">
-            <label htmlFor="inquiriesWeek">本週詢問組數</label>
-            <input id="inquiriesWeek" onChange={(e) => setInquiriesWeek(e.target.value)} type="number" value={inquiriesWeek} />
-          </div>
-          <div className="field">
-            <label htmlFor="inquiriesTotal">累積詢問組數</label>
-            <input id="inquiriesTotal" onChange={(e) => setInquiriesTotal(e.target.value)} type="number" value={inquiriesTotal} />
-          </div>
-          <div className="field">
-            <label htmlFor="viewingsWeek">本週帶看組數</label>
-            <input id="viewingsWeek" onChange={(e) => setViewingsWeek(e.target.value)} type="number" value={viewingsWeek} />
-          </div>
-          <div className="field">
-            <label htmlFor="viewingsTotal">累積帶看組數</label>
-            <input id="viewingsTotal" onChange={(e) => setViewingsTotal(e.target.value)} type="number" value={viewingsTotal} />
-          </div>
-          <div className="field">
-            <label htmlFor="viewingsPending">待安排帶看組數</label>
-            <input id="viewingsPending" onChange={(e) => setViewingsPending(e.target.value)} type="number" value={viewingsPending} />
-          </div>
+        <h2>市場反應 — 客戶／銷售紀錄（自動統計）</h2>
+        <div className="market-stats-row">
+          <div><span className="n">{customerStats.inquiriesWeek}</span><span className="l">本週詢問</span></div>
+          <div><span className="n">{customerStats.tracking}</span><span className="l">追蹤中</span></div>
+          <div><span className="n">{customerStats.viewingsWeek}</span><span className="l">本週實際帶看</span></div>
+          <div><span className="n">{customerStats.inquiriesTotal}</span><span className="l">累積詢問</span></div>
+          <div><span className="n">{customerStats.viewingsTotal}</span><span className="l">累積帶看</span></div>
         </div>
+
+        {customerRecords.length ? (
+          <div className="market-select-list">
+            <p className="market-select-hint">
+              勾選要放進這份週報的紀錄——本週的紀錄已預設打勾。設為「不給屋主看」的紀錄不會出現在這裡，
+              客戶簡稱與內部備註永遠不會進到屋主端。
+            </p>
+            {customerRecords
+              .filter((record) => record.visibleToOwner)
+              .map((record) => {
+                const when = recordTimestamp(record);
+                return (
+                  <label className="market-select-row" key={record.id}>
+                    <input
+                      checked={selectedRecordIds.has(record.id)}
+                      onChange={() => toggleRecordSelection(record.id)}
+                      type="checkbox"
+                    />
+                    <span className="cap-tag">{recordLabel(record)}</span>
+                    <span>{when ? new Date(when).toLocaleDateString("zh-TW", { month: "2-digit", day: "2-digit" }) : "—"}</span>
+                    <span className="market-select-title">{record.feedback || "（未填回饋）"}</span>
+                    {record.photos.length ? <span className="market-select-badge">📷 {record.photos.length}</span> : null}
+                  </label>
+                );
+              })}
+          </div>
+        ) : (
+          <p className="empty-state">
+            案件還沒有客戶紀錄，請到「
+            <a href={`/admin/sellers/${sellerId}`}>客戶／銷售紀錄</a>」新增，之後這裡就會自動統計。
+          </p>
+        )}
       </section>
 
       <section className="seller-panel">
