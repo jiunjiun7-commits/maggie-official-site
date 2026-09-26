@@ -6,8 +6,10 @@ import {
   MANUAL_EXPOSURE_CHANNELS,
   PRIMARY_EXPOSURE_PLATFORMS,
   listSellerReportsForPortal,
+  type PrimaryExposurePlatform as PrimaryExposurePlatformKey,
   type SellerReport
 } from "@/lib/seller-report-store";
+import { listExposureLinks } from "@/lib/seller-exposure-store";
 import PromotionPhotoGallery from "./PromotionPhotoGallery";
 import "./portal.css";
 
@@ -63,6 +65,13 @@ export default async function SellerPortalPage({ params }: { params: Promise<{ t
   }
 
   const reports = await listSellerReportsForPortal(sellerId);
+
+  // 人工紀錄的平台（樂屋網）沒有自動快照，沒有 activeDays 可用，卡片就會開天窗。
+  // 這裡只取出「開始刊登日」算天數，刻意不把 listing_url 等內部設定值交給 Portal。
+  const exposureStartedAt: Partial<Record<PrimaryExposurePlatformKey, string>> = {};
+  for (const link of await listExposureLinks(sellerId)) {
+    exposureStartedAt[link.platform as PrimaryExposurePlatformKey] = link.startedAt;
+  }
   const [latest, ...history] = reports;
 
   return (
@@ -85,7 +94,7 @@ export default async function SellerPortalPage({ params }: { params: Promise<{ t
         {latest ? (
           <section className="portal-report">
             <h2>最新週報｜{formatDate(latest.periodStart)} ～ {formatDate(latest.periodEnd)}</h2>
-            <ReportBody report={latest} />
+            <ReportBody exposureStartedAt={exposureStartedAt} report={latest} />
           </section>
         ) : (
           <section className="portal-report">
@@ -101,7 +110,7 @@ export default async function SellerPortalPage({ params }: { params: Promise<{ t
                 <summary>
                   {formatDate(report.reportDate)} Seller Report（{formatDate(report.periodStart)} ～ {formatDate(report.periodEnd)}）
                 </summary>
-                <ReportBody report={report} />
+                <ReportBody exposureStartedAt={exposureStartedAt} report={report} />
               </details>
             ))}
           </section>
@@ -111,7 +120,24 @@ export default async function SellerPortalPage({ params }: { params: Promise<{ t
   );
 }
 
-function ReportBody({ report }: { report: SellerReport }) {
+function activeDaysUntil(startedAt: string | undefined, periodEnd: string) {
+  if (!startedAt) return null;
+  const days = Math.floor((new Date(periodEnd).getTime() - new Date(startedAt).getTime()) / 86_400_000);
+  return days >= 0 ? days : null;
+}
+
+/** 剛上架當週算出來是 0 天，寫「已持續刊登 0 天」對屋主來說很奇怪，改講「本週完成上架」。 */
+function describeActiveDays(days: number) {
+  return days <= 0 ? "本週完成上架" : `已持續刊登 ${days} 天`;
+}
+
+function ReportBody({
+  report,
+  exposureStartedAt
+}: {
+  report: SellerReport;
+  exposureStartedAt: Partial<Record<PrimaryExposurePlatformKey, string>>;
+}) {
   const manualExposureDone = MANUAL_EXPOSURE_CHANNELS.filter((c) => report.exposure[c.key]?.done);
 
   return (
@@ -126,9 +152,15 @@ function ReportBody({ report }: { report: SellerReport }) {
 
             if (capability === "manual") {
               if (!entry?.done) return null;
+              // 人工紀錄沒有自動抓取的狀態與瀏覽數，但刊登天數仍然算得出來，
+              // 補上這行才不會出現一張只有平台名稱、底下空白的卡片。
+              const manualDays = activeDaysUntil(exposureStartedAt[platform.key], report.periodEnd);
               return (
                 <div className="portal-primary-card" key={platform.key}>
                   <strong>{platform.label}</strong>
+                  {manualDays !== null ? (
+                    <span className="portal-primary-days">{describeActiveDays(manualDays)}</span>
+                  ) : null}
                   {entry.note ? <span>{entry.note}</span> : null}
                 </div>
               );
@@ -141,14 +173,14 @@ function ReportBody({ report }: { report: SellerReport }) {
                   <strong>{platform.label}</strong>
                   <span>{EXPOSURE_AUTO_STATUS_LABEL[auto.status]}</span>
                 </div>
-                <span className="portal-primary-days">已持續刊登 {auto.activeDays} 天</span>
+                <span className="portal-primary-days">{describeActiveDays(auto.activeDays)}</span>
                 {auto.cumulativeViews !== null ? (
                   <span>
                     累積瀏覽 {auto.cumulativeViews}
                     {auto.weeklyViewDelta !== null ? `｜本週新增 ${auto.weeklyViewDelta}` : ""}
                   </span>
                 ) : (
-                  <span>瀏覽數：平台無法自動取得</span>
+                  <span>此平台未公開瀏覽數</span>
                 )}
                 {entry.note ? <span>{entry.note}</span> : null}
               </div>
