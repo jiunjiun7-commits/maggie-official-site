@@ -6,14 +6,22 @@ import {
   type CustomerRecordKind,
   type CustomerRecordStatus
 } from "@/lib/seller-customer-store";
+import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
 
 const KINDS: CustomerRecordKind[] = ["customer", "peer_feedback", "promotion", "other"];
 const STATUSES: CustomerRecordStatus[] = ["inquiry", "tracking", "appointed", "viewed", "closed"];
 
-/** 前端送的是 datetime-local 字串（沒有時區），空字串代表沒填。 */
+/**
+ * 前端送的是 date 字串（YYYY-MM-DD），空字串代表沒填。
+ *
+ * 只有日期沒有時間時固定存當天「中午 UTC」，不是午夜——午夜存下去，
+ * 換算到別的時區顯示時有機會掉到前一天，中午留了 12 小時的緩衝，怎麼換算都還是同一天。
+ * 仍然接受帶時間的字串（舊資料或之後有需要時），照原樣解析。
+ */
 function parseTimestamp(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
-  const date = new Date(value);
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value.trim());
+  const date = new Date(dateOnly ? `${value.trim()}T12:00:00.000Z` : value);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
@@ -34,6 +42,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const inquiredAt = parseTimestamp(body.inquiredAt);
   const viewedAt = parseTimestamp(body.viewedAt);
   const occurredAt = parseTimestamp(body.occurredAt);
+
+  // 日期防呆：民國年打成 115 會變成西元 115 年。這個坑踩過兩次，前後端都擋。
+  for (const [label, value] of [["詢問日期", inquiredAt], ["帶看日期", viewedAt], ["發生日期", occurredAt]] as const) {
+    if (value && isImplausibleYear(value.slice(0, 10))) {
+      return NextResponse.json({ ok: false, error: `${label}：${IMPLAUSIBLE_YEAR_MESSAGE}` }, { status: 400 });
+    }
+  }
 
   // 每一種紀錄至少要有一個時間，否則週報無從判斷它屬於哪一週。
   if (kind === "customer" && !inquiredAt && !viewedAt) {

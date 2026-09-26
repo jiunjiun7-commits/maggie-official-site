@@ -9,6 +9,7 @@ import {
   type CustomerRecordStatus
 } from "@/lib/seller-customer-store";
 import type { PromotionPhoto } from "@/lib/seller-report-store";
+import { isImplausibleYear, IMPLAUSIBLE_YEAR_MESSAGE } from "@/lib/date-guard";
 
 const MAX_RECORD_PHOTOS = 6;
 
@@ -22,16 +23,20 @@ function formatWhen(value: string | null) {
   });
 }
 
-/** timestamptz → datetime-local 輸入框要的 "YYYY-MM-DDTHH:mm"（本地時間）。 */
-function toLocalInput(value: string | null) {
+/**
+ * timestamptz → date 輸入框要的 "YYYY-MM-DD"。
+ * 週報只用得到日期，不記時間——問到／看到的「幾點」對週報沒有意義，
+ * 每次都要選時間反而是多餘的輸入負擔。
+ */
+function toDateInput(value: string | null) {
   if (!value) return "";
   const d = new Date(value);
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function nowLocalInput() {
-  return toLocalInput(new Date().toISOString());
+function todayInput() {
+  return toDateInput(new Date().toISOString());
 }
 
 export default function CustomerRecordsPanel({
@@ -81,6 +86,14 @@ export default function CustomerRecordsPanel({
     event.preventDefault();
     setMessage("");
     const form = new FormData(event.currentTarget);
+    // 跟案件基本資料、週報同一套日期防呆，避免民國年被當成西元年存進去。
+    for (const key of ["inquiredAt", "viewedAt", "occurredAt"]) {
+      const value = String(form.get(key) || "");
+      if (value && isImplausibleYear(value)) {
+        setMessage(IMPLAUSIBLE_YEAR_MESSAGE);
+        return;
+      }
+    }
     setBusy(true);
     try {
       const response = await fetch(`/api/sellers/${sellerId}/customer-records`, {
@@ -194,12 +207,12 @@ export default function CustomerRecordsPanel({
                   </select>
                 </div>
                 <div className="field">
-                  <label htmlFor="inquiredAt">詢問時間</label>
-                  <input defaultValue={nowLocalInput()} id="inquiredAt" name="inquiredAt" type="datetime-local" />
+                  <label htmlFor="inquiredAt">詢問日期</label>
+                  <input defaultValue={todayInput()} id="inquiredAt" name="inquiredAt" type="date" />
                 </div>
                 <div className="field">
-                  <label htmlFor="viewedAt">實際帶看時間（狀態到「實際帶看」才需要）</label>
-                  <input id="viewedAt" name="viewedAt" type="datetime-local" />
+                  <label htmlFor="viewedAt">實際帶看日期（狀態到「實際帶看」才需要）</label>
+                  <input id="viewedAt" name="viewedAt" type="date" />
                 </div>
                 <div className="field">
                   <label htmlFor="customerAlias">客戶簡稱（選填，屋主看不到）</label>
@@ -208,8 +221,8 @@ export default function CustomerRecordsPanel({
               </>
             ) : (
               <div className="field">
-                <label htmlFor="occurredAt">發生時間</label>
-                <input defaultValue={nowLocalInput()} id="occurredAt" name="occurredAt" type="datetime-local" />
+                <label htmlFor="occurredAt">發生日期</label>
+                <input defaultValue={todayInput()} id="occurredAt" name="occurredAt" type="date" />
               </div>
             )}
 
@@ -298,14 +311,14 @@ export default function CustomerRecordsPanel({
                       ))}
                     </select>
                     <label className="checkbox-inline">
-                      帶看時間
+                      帶看日期
                       <input
-                        defaultValue={toLocalInput(record.viewedAt)}
+                        defaultValue={toDateInput(record.viewedAt)}
                         onBlur={(e) => {
                           const next = e.target.value;
-                          if (next !== toLocalInput(record.viewedAt)) patchRecord(record.id, { viewedAt: next });
+                          if (next !== toDateInput(record.viewedAt)) patchRecord(record.id, { viewedAt: next });
                         }}
-                        type="datetime-local"
+                        type="date"
                       />
                     </label>
                   </>
