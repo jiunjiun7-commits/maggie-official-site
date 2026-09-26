@@ -70,7 +70,14 @@ function emptyExposure(): Exposure {
 
 function formatCheckedAt(value: string) {
   if (!value) return "尚未檢查";
-  return new Date(value).toLocaleString("zh-TW", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  // 伺服器跑在 UTC，不指定時區會顯示成台灣時間的 8 小時前
+  return new Date(value).toLocaleString("zh-TW", {
+    timeZone: "Asia/Taipei",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 function statusTone(status: ExposureAutoSnapshot["status"] | undefined) {

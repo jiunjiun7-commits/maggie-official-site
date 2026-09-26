@@ -14,6 +14,7 @@ import SalesRecordsPanel from "./SalesRecordsPanel";
 
 function formatOpenedAt(value: string) {
   return new Date(value).toLocaleString("zh-TW", {
+    timeZone: "Asia/Taipei", // 伺服器跑在 UTC，不指定時區會顯示成台灣時間的 8 小時前
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
