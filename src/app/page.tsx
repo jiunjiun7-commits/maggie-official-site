@@ -18,10 +18,11 @@ export const dynamic = "force-dynamic";
 
 /**
  * 累積成交實績。⚠️ 這是對外公開的業績數字，更新前請先自己核對。
- * 實際金額 2.59632 億，顯示取到小數第二位。
+ * 資料截至 2026/09/30。
+ * 實際金額 2.68732 億（8/6 的 2.59632 億 + 新增 1 件 910 萬），顯示取到小數第二位。
  */
-const TOTAL_SALES_100M = 2.6;
-const TOTAL_DEALS = 24;
+const TOTAL_SALES_100M = 2.69;
+const TOTAL_DEALS = 25;
 
 const LINE_URL = PROFILE.social.line;
 const TEL_URL = `tel:${PROFILE.phoneRaw}`;
